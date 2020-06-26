@@ -1,0 +1,29 @@
+fabric01:
+  hosts:
+    apic1:
+      apic_host: 192.168.253.17
+      apic_password: ajlab.local
+      apic_username: admin
+  vars:
+    aci_topology:
+      tenant:
+        - name: Tenant1
+          bd:
+          - name: Web-BD
+            arp_flood: 'yes'
+            l2_unk_uni: flood
+            l3out: []
+            vrf: Prod-VRF
+            enable_routing: 'no'
+          app:
+            - name: Production-Network
+              epg:
+              - bd: Web-BD
+                domains:
+                - name: Phys-Dom
+                  type: phys
+                name: Web-EPG
+                pref_grp: 'no'
+      access_policy: []
+    apic_use_proxy: false
+    apic_validate_certs: false

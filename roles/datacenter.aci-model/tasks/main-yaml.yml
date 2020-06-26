@@ -1,0 +1,329 @@
+# This taskbook is exactly indentical to the JSON version, but using YAML payload.
+# The aci_rest module simply converts the YAML payload into JSON before sending to the APIC.
+
+# Using YAML as input is convenient when managing the payload e.g. from git.
+
+- name: Push aci_model
+
+  # We prepare an aci_login anchor for convenience
+  vars:
+    aci_login: &aci_login
+      hostname: '{{ apic_host }}'
+      username: '{{ apic_username }}'
+      password: '{{ apic_password }}'
+      use_proxy: '{{ apic_use_proxy }}'
+      validate_certs: '{{ apic_validate_certs }}'
+
+  # We define the delegate_to at the block-level
+  delegate_to: localhost
+
+  block:
+  # ***********TIER1 CONFIGURATIONS**************
+  # Currently no module for creating BGP route reflectors
+  # I will add a manual REST call for this later
+  
+  - name: Create Virtual Port Channel protection groups
+    aci_switch_policy_vpc_protection_group:
+      <<: *aci_login
+      protection_group: '{{ item.access_policy_switch_policy_virtual_port_channel_name }}'
+      protection_group_id: '{{ item.access_policy_switch_policy_virtual_port_channel_grp_id }}'
+      switch_1_id: '{{ item.access_policy_switch_policy_virtual_port_channel_switch1 }}'
+      switch_2_id: '{{ item.access_policy_switch_policy_virtual_port_channel_switch2 }}'
+      vpc_domain_policy: '{{ item.access_policy_switch_policy_virtual_port_channel_policy }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_virtual_port_channel") }}'
+
+  - name: Create LLDP interface policies
+    aci_intf_policy_lldp:
+      <<: *aci_login
+      lldp_policy: '{{ item.access_policy_interface_policy_lldp_name }}'
+      receive_state: '{{ item.access_policy_interface_policy_lldp_receive }}'
+      transmit_state: '{{ item.access_policy_interface_policy_lldp_transmit }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_lldp") }}'
+
+  - name: Create CDP interface policies
+    aci_interface_policy_cdp:
+      <<: *aci_login
+      cdp_policy: '{{ item.access_policy_interface_policy_cdp_name }}'
+      admin_state: '{{ item.access_policy_interface_policy_cdp_state }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_cdp") }}'
+
+  - name: Create port channel policies
+    aci_intf_policy_port_channel:
+      <<: *aci_login
+      port_channel: '{{ item.access_policy_interface_policy_port_channel_name }}'
+      mode: '{{ item.access_policy_interface_policy_port_channel_mode }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_port_channel") }}'
+
+  - name: Add VLAN pools
+    aci_vlan_pool:
+      <<: *aci_login
+      pool: '{{ item.access_policy_vlan_pool_name }}'
+      pool_allocation_mode: '{{ item.access_policy_vlan_pool_alloc }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","vlan_pool") }}'
+
+  - name: Add encapsulation blocks to VLAN pools
+    aci_vlan_pool_encap_block:
+      <<: *aci_login
+      pool: '{{ item.access_policy_vlan_pool_name }}'
+      pool_allocation_mode: '{{ item.access_policy_vlan_pool_alloc }}'
+      block_name: 'none'
+      block_start: '{{ item.access_policy_vlan_pool_encap_block_from }}'
+      block_end: '{{ item.access_policy_vlan_pool_encap_block_to }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","vlan_pool","encap_block") }}'
+
+  - name: Add domains
+    aci_domain:
+      <<: *aci_login
+      domain: '{{ item.access_policy_domain_name }}'
+      domain_type: '{{ item.access_policy_domain_type }}'
+      vm_provider: '{{ item.access_policy_domain_vm_provider | default(None) or omit }}'
+      vswitch: '{{ item.access_policy_domain_vswitch_type | default(None) or omit }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
+
+  - name: Bind domains to VLAN pools
+    aci_domain_to_vlan_pool:
+      <<: *aci_login
+      domain: '{{ item.access_policy_domain_name }}'
+      domain_type: '{{ item.access_policy_domain_type }}'
+      pool: '{{ item.access_policy_domain_vlan_pool }}'
+      pool_allocation_mode: '{{ item.access_policy_domain_vlan_pool_allocation }}'
+      vm_provider: '{{ item.access_policy_domain_vm_provider | default(None) or omit }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
+
+  - name: Add AAEPs
+    aci_aep:
+      <<: *aci_login
+      aep: '{{ item.access_policy_aci_aep_name }}'
+      description: '{{ item.access_policy_aci_aep_description }}'
+      infra_vlan: '{{ item.access_policy_aci_aep_enable_infra_vlan }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep") }}'
+
+  - name: Bind AAEPs to Domains
+    aci_aep_to_domain:
+      <<: *aci_login
+      aep: '{{ item.access_policy_aci_aep_name }}'
+      domain: '{{ item.access_policy_aci_aep_domains_name }}'
+      domain_type: '{{ item.access_policy_aci_aep_domains_type }}'
+      vm_provider: '{{ item.access_policy_aci_aep_domains_vm_provider | default(None) or omit }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","domains") }}'
+
+
+  # ***********TIER2 CONFIGURATIONS**************
+  - name: Add leaf interface policy groups
+    aci_interface_policy_leaf_policy_group:
+      <<: *aci_login
+      policy_group: '{{ item.access_policy_interface_policy_group_name }}'
+      description: '{{ item.access_policy_interface_policy_group_description | default(None) }}'
+      lag_type: '{{ item.access_policy_interface_policy_group_type | default(None) or omit }}'
+      port_channel_policy: '{{ item.access_policy_interface_policy_group_port_channel_policy | default(None) or omit }}'
+      aep: '{{ item.access_policy_interface_policy_group_aaep | default(None) or omit }}'
+      port_security_policy:  '{{ item.access_policy_interface_policy_group_port_security_policy | default(None) or omit }}'
+      stp_interface_policy: '{{ item.access_policy_interface_policy_group_stp_interface_policy | default(None) or omit }}'
+      cdp_policy: '{{ item.access_policy_interface_policy_group_cdp_pol | default(None) or omit }}'
+      lldp_policy: '{{ item.access_policy_interface_policy_group_lldp_pol | default(None) or omit }}'
+      link_level_policy: '{{ item.access_policy_interface_policy_group_lacp_pol | default(None) or omit }}'
+      mcp_policy: '{{ item.access_policy_interface_policy_group_mcp_policy | default(None) or omit }}'
+      monitoring_policy: '{{ item.access_policy_interface_policy_group_monitoring_policy | default(None) or omit }}'
+      l2_interface_policy: '{{ item.access_policy_interface_policy_group_l2_interface_policy | default(None) or omit }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_group") }}'
+
+  - name: Add interface policy profiles
+    aci_interface_policy_leaf_profile:
+      <<: *aci_login
+      leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile") }}'
+
+  - name: Associate an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group
+    aci_access_port_to_interface_policy_leaf_profile:
+      <<: *aci_login
+      leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
+      access_port_selector: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
+      leaf_port_blk: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
+      from_port: '{{ item.access_policy_interface_policy_profile_port_selector_from | default(None) or omit }}'
+      to_port: '{{ item.access_policy_interface_policy_profile_port_selector_to | default(None) or omit }}'
+      policy_group: '{{ item.access_policy_interface_policy_profile_port_selector_policy_grp | default(None) or omit }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile","port_selector") }}'
+
+  - name: Add leaf switch profiles
+    aci_switch_policy_leaf_profile:
+      <<: *aci_login
+      leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
+      description: ''
+    with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile") }}'
+
+  - name: Bind leaf selectors to switch profiles
+    aci_switch_leaf_selector:
+      <<: *aci_login
+      leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
+      leaf: '{{ item.access_policy_switch_policy_profile_leaf_selector_name }}'
+      description: ''
+      from: '{{ item.access_policy_switch_policy_profile_leaf_selector_from }}'
+      to: '{{ item.access_policy_switch_policy_profile_leaf_selector_to }}'
+      leaf_node_blk: none
+    with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile","leaf_selector") }}'
+
+  - name: Bind interface selector profiles to switch profiles
+    aci_interface_selector_to_switch_policy_leaf_profile:
+      <<: *aci_login
+      interface_selector: '{{ item.access_policy_switch_policy_profile_interface_selector_profile_name }}'
+      leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile","interface_selector_profile") }}'
+
+  
+  # ***********TIER3 CONFIGURATIONS**************
+  - name: Create tenants
+    aci_tenant:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      description: '{{ item.tenant_description }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant") }}'
+
+  - name: Create VRFs
+    aci_vrf:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      vrf_name: '{{ item.tenant_vrf_name }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","vrf") }}'
+
+  - name: Add a new L3Out
+    # L3 protocols = bgp, eigrp, ospf, pim, static
+    aci_l3out:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      name: '{{ item.tenant_l3o_name }}'
+      description: '{{ item.tenant_l3o_description | default(None) or omit }}'
+      domain: '{{ item.tenant_l3o_domain }}'
+      vrf: '{{ item.tenant_l3o_vrf }}'
+      l3protocol: '{{ item.tenant_l3o_l3protocol }}'
+      route_control: '{{ item.tenant_l3o_route_control }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o") }}'
+
+  - name: Add a new L3Out EPG
+    aci_l3out_extepg:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      l3out: '{{ item.tenant_l3o_name }}'
+      name: '{{ item.tenant_l3o_epg_name }}'
+      description: '{{ item.tenant_l3o_epg_description | default(None) or omit }}'
+      preferred_group: '{{ item.tenant_l3o_epg_preferred_group }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o","epg") }}'
+
+  - name: Add a new L3Out External Subnet
+    # Scope: export-rtctrl, import-security, shared-rtctrl, shared-security
+    aci_l3out_extsubnet:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      l3out: '{{ item.tenant_l3o_name }}'
+      extepg: '{{ item.tenant_l3o_epg_name }}'
+      description: '{{ item.tenant_l3o_epg_extsubnet_description | default(None) or omit }}'
+      network: '{{ item.tenant_l3o_epg_extsubnet_network }}'
+      scope: '{{ item.tenant_l3o_epg_extsubnet_scope }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o","epg","extsubnet") }}'
+
+  - name: Create BDs
+    aci_bd:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      vrf: '{{ item.tenant_bd_vrf }}'
+      bd: '{{ item.tenant_bd_name }}'
+      l2_unknown_unicast: '{{ item.tenant_bd_l2_unk_uni }}'
+      arp_flooding: '{{ item.tenant_bd_arp_flood }}'
+      enable_routing: '{{ item.tenant_bd_enable_routing }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","bd") }}'
+
+  - name: Create BD subnets
+    aci_bd_subnet:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      bd: '{{ item.tenant_bd_name }}'
+      gateway: '{{ item.tenant_bd_subnet_name }}'
+      mask: '{{ item.tenant_bd_subnet_mask }}'
+      scope: '{{ item.tenant_bd_subnet_scope }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","bd","subnet") }}'
+
+  - name: Create Application Profiles
+    aci_ap:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      app_profile: '{{ item.tenant_app_name }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","app") }}'
+
+  - name: Create EPGs
+    aci_epg:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      app_profile: '{{ item.tenant_app_name }}'
+      epg: '{{ item.tenant_app_epg_name }}'
+      bd: '{{ item.tenant_app_epg_bd }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","app","epg") }}'
+
+  - name: Create contracts
+    aci_contract:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      contract: '{{ item.tenant_contract_name }}'
+      scope: '{{ item.tenant_contract_scope }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","contract") }}'
+
+  - name: Create contract subjects
+    aci_contract_subject:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      contract: '{{ item.tenant_contract_name }}'
+      contract_subject: '{{ item.tenant_contract_subject_name }}'
+      reverse_filter: yes
+    with_items: '{{ aci_model_data|aci_listify("tenant","contract","subject") }}'
+
+  - name: Bind contract subjects to filters
+    aci_contract_subject_to_filter:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      contract: '{{ item.tenant_contract_name }}'
+      contract_subject: '{{ item.tenant_contract_subject_name }}'
+      filter: '{{ item.tenant_contract_subject_filter }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","contract","subject") }}'
+
+  - name: Bind EPGs to contracts
+    aci_epg_to_contract:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      app_profile: '{{ item.tenant_app_name }}'
+      epg: '{{ item.tenant_app_epg_name }}'
+      contract: '{{ item.tenant_app_epg_contract_name }}'
+      contract_type: '{{ item.tenant_app_epg_contract_type }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","contract") }}'
+
+  - name: Associate BDs to L3Outs
+    aci_bd_to_l3out:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      bd: '{{ item.tenant_bd_name }}'
+      l3out: '{{ item.tenant_bd_l3out_name }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","bd","l3out") }}'
+
+  - name: Bind EPGs to domains
+    aci_epg_to_domain:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      app_profile: '{{ item.tenant_app_name }}'
+      epg: '{{ item.tenant_app_epg_name }}'
+      domain: '{{ item.tenant_app_epg_domains_name | default(None) or omit }}'
+      domain_type: '{{ item.tenant_app_epg_domains_type | default(None) or omit }}'
+      vm_provider: '{{ item.tenant_app_epg_domains_vm_provider | default(None) or omit }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","domains") }}'
+
+  - name: Create EPG static paths
+    aci_static_binding_to_epg:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      ap: '{{ item.tenant_app_name }}'
+      epg: '{{ item.tenant_app_epg_name }}'
+      deploy_immediacy: immediate
+      encap_id: '{{ item.tenant_app_epg_static_paths_encap_id }}'
+      interface: '{{ item.tenant_app_epg_static_paths_interface }}'
+      interface_mode: '{{ item.tenant_app_epg_static_paths_interface_mode }}'
+      interface_type: '{{ item.tenant_app_epg_static_paths_interface_type }}'
+      leafs: '{{ item.tenant_app_epg_static_paths_leafs }}'
+      pod_id: '{{ item.tenant_app_epg_static_paths_pod_id }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","static_paths") }}'
+    when: item.tenant_app_epg_static_paths_interface is defined
