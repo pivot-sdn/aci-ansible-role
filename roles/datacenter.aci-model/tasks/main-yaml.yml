@@ -255,6 +255,7 @@
       app_profile: '{{ item.tenant_app_name }}'
       epg: '{{ item.tenant_app_epg_name }}'
       bd: '{{ item.tenant_app_epg_bd }}'
+      preferred_group: '{{ item.tenant_app_epg_pref_grp }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg") }}'
 
   - name: Create contracts
