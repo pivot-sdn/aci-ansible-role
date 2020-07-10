@@ -15,7 +15,8 @@ def listify_worker(d, keys, depth, result, cache, prefix):
             cache_work = cache.copy()
             if isinstance(item, dict):
                 for k,v in item.items():
-                    if k == 'leafs': # This is the only key who's value CAN be a list
+                    allowed_list_values = ['leafs','bd_sub_scope']
+                    if k in allowed_list_values: # These are the only key who's value CAN be a list
                         cache_key = prefix + k
                         cache_value = v
                         cache_work[cache_key] = cache_value

@@ -1,0 +1,35 @@
+# This taskbook is exactly indentical to the JSON version, but using YAML payload.
+# The aci_rest module simply converts the YAML payload into JSON before sending to the APIC.
+
+# Using YAML as input is convenient when managing the payload e.g. from git.
+
+- name: Push aci_model
+
+  # We prepare an aci_login anchor for convenience
+  vars:
+    aci_login: &aci_login
+      hostname: '{{ apic_host }}'
+      username: '{{ apic_username }}'
+      password: '{{ apic_password }}'
+      use_proxy: '{{ apic_use_proxy }}'
+      validate_certs: '{{ apic_validate_certs }}'
+
+  # We define the delegate_to at the block-level
+  delegate_to: localhost
+
+  block:
+  # ***********TIER1 CONFIGURATIONS**************
+  # Currently no module for creating BGP route reflectors
+  # I will add a manual REST call for this later
+  
+  - name: Create BD subnets
+    aci_bd_subnet:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      bd: '{{ item.tenant_bd_name }}'
+      gateway: '{{ item.tenant_bd_subnet_address }}'
+      mask: '{{ item.tenant_bd_subnet_mask }}'
+      enable_vip: '{{ item.tenant_bd_subnet_isvip }}'
+      scope: '{{ item.tenant_bd_subnet_bd_sub_scope }}'
+      state: '{{ item.tenant_bd_subnet_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","bd","subnet") }}'

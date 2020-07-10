@@ -258,9 +258,10 @@
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       bd: '{{ item.tenant_bd_name }}'
-      gateway: '{{ item.tenant_bd_subnet_name }}'
+      gateway: '{{ item.tenant_bd_subnet_address }}'
       mask: '{{ item.tenant_bd_subnet_mask }}'
-      scope: '{{ item.tenant_bd_subnet_scope }}'
+      enable_vip: '{{ item.tenant_bd_subnet_isvip }}'
+      scope: '{{ item.tenant_bd_subnet_bd_sub_scope }}'
       state: '{{ item.tenant_bd_subnet_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","bd","subnet") }}'
 
