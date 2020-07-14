@@ -23,7 +23,7 @@
   # I will add a manual REST call for this later
   
   - name: Create Virtual Port Channel protection groups
-    aci_switch_policy_vpc_protection_group:
+    cisco.aci.aci_switch_policy_vpc_protection_group:
       <<: *aci_login
       protection_group: '{{ item.access_policy_switch_policy_virtual_port_channel_name }}'
       protection_group_id: '{{ item.access_policy_switch_policy_virtual_port_channel_grp_id }}'
@@ -34,7 +34,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_virtual_port_channel") }}'
 
   - name: Create LLDP interface policies
-    aci_intf_policy_lldp:
+    cisco.aci.aci_interface_policy_lldp:
       <<: *aci_login
       lldp_policy: '{{ item.access_policy_interface_policy_lldp_name }}'
       receive_state: '{{ item.access_policy_interface_policy_lldp_receive }}'
@@ -43,7 +43,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_lldp") }}'
 
   - name: Create CDP interface policies
-    aci_interface_policy_cdp:
+    cisco.aci.aci_interface_policy_cdp:
       <<: *aci_login
       cdp_policy: '{{ item.access_policy_interface_policy_cdp_name }}'
       admin_state: '{{ item.access_policy_interface_policy_cdp_state }}'
@@ -51,7 +51,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_cdp") }}'
 
   - name: Create port channel policies
-    aci_intf_policy_port_channel:
+    cisco.aci.aci_interface_policy_port_channel:
       <<: *aci_login
       port_channel: '{{ item.access_policy_interface_policy_port_channel_name }}'
       mode: '{{ item.access_policy_interface_policy_port_channel_mode }}'
@@ -59,7 +59,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_port_channel") }}'
 
   - name: Add VLAN pools
-    aci_vlan_pool:
+    cisco.aci.aci_vlan_pool:
       <<: *aci_login
       pool: '{{ item.access_policy_vlan_pool_name }}'
       pool_allocation_mode: '{{ item.access_policy_vlan_pool_alloc }}'
@@ -67,7 +67,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","vlan_pool") }}'
 
   - name: Add encapsulation blocks to VLAN pools
-    aci_vlan_pool_encap_block:
+    cisco.aci.aci_vlan_pool_encap_block:
       <<: *aci_login
       pool: '{{ item.access_policy_vlan_pool_name }}'
       pool_allocation_mode: '{{ item.access_policy_vlan_pool_alloc }}'
@@ -78,7 +78,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","vlan_pool","encap_block") }}'
 
   - name: Add domains
-    aci_domain:
+    cisco.aci.aci_domain:
       <<: *aci_login
       domain: '{{ item.access_policy_domain_name }}'
       domain_type: '{{ item.access_policy_domain_type }}'
@@ -88,7 +88,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
 
   - name: Bind domains to VLAN pools
-    aci_domain_to_vlan_pool:
+    cisco.aci.aci_domain_to_vlan_pool:
       <<: *aci_login
       domain: '{{ item.access_policy_domain_name }}'
       domain_type: '{{ item.access_policy_domain_type }}'
@@ -99,7 +99,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
 
   - name: Add AAEPs
-    aci_aep:
+    cisco.aci.aci_aep:
       <<: *aci_login
       aep: '{{ item.access_policy_aci_aep_name }}'
       description: '{{ item.access_policy_aci_aep_description }}'
@@ -120,7 +120,7 @@
 
   # ***********TIER2 CONFIGURATIONS**************
   - name: Add leaf interface policy groups
-    aci_interface_policy_leaf_policy_group:
+    cisco.aci.aci_interface_policy_leaf_policy_group:
       <<: *aci_login
       policy_group: '{{ item.access_policy_interface_policy_group_name }}'
       description: '{{ item.access_policy_interface_policy_group_description | default(None) }}'
@@ -139,14 +139,14 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_group") }}'
 
   - name: Add interface policy profiles
-    aci_interface_policy_leaf_profile:
+    cisco.aci.aci_interface_policy_leaf_profile:
       <<: *aci_login
       leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
       state: '{{ item.access_policy_interface_policy_profile_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile") }}'
 
   - name: Associate an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group
-    aci_access_port_to_interface_policy_leaf_profile:
+    cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
       <<: *aci_login
       leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
       access_port_selector: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
@@ -158,7 +158,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile","port_selector") }}'
 
   - name: Add leaf switch profiles
-    aci_switch_policy_leaf_profile:
+    cisco.aci.aci_switch_policy_leaf_profile:
       <<: *aci_login
       leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
       description: '{{ item.access_policy_switch_policy_profile_description | default("") }}'
@@ -166,7 +166,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile") }}'
 
   - name: Bind leaf selectors to switch profiles
-    aci_switch_leaf_selector:
+    cisco.aci.aci_switch_leaf_selector:
       <<: *aci_login
       leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
       leaf: '{{ item.access_policy_switch_policy_profile_leaf_selector_name }}'
@@ -178,7 +178,7 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile","leaf_selector") }}'
 
   - name: Bind interface selector profiles to switch profiles
-    aci_interface_selector_to_switch_policy_leaf_profile:
+    cisco.aci.aci_interface_selector_to_switch_policy_leaf_profile:
       <<: *aci_login
       interface_selector: '{{ item.access_policy_switch_policy_profile_interface_selector_profile_name }}'
       leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
@@ -188,7 +188,7 @@
   
   # ***********TIER3 CONFIGURATIONS**************
   - name: Create tenants
-    aci_tenant:
+    cisco.aci.aci_tenant:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       description: '{{ item.tenant_description }}'
@@ -196,7 +196,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant") }}'
 
   - name: Create VRFs
-    aci_vrf:
+    cisco.aci.aci_vrf:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       vrf_name: '{{ item.tenant_vrf_name }}'
@@ -205,7 +205,7 @@
 
   - name: Add a new L3Out
     # L3 protocols = bgp, eigrp, ospf, pim, static
-    aci_l3out:
+    cisco.aci.aci_l3out:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       name: '{{ item.tenant_l3o_name }}'
@@ -218,7 +218,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","l3o") }}'
 
   - name: Add a new L3Out EPG
-    aci_l3out_extepg:
+    cisco.aci.aci_l3out_extepg:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       l3out: '{{ item.tenant_l3o_name }}'
@@ -230,7 +230,7 @@
 
   - name: Add a new L3Out External Subnet
     # Scope: export-rtctrl, import-security, shared-rtctrl, shared-security
-    aci_l3out_extsubnet:
+    cisco.aci.aci_l3out_extsubnet:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       l3out: '{{ item.tenant_l3o_name }}'
@@ -242,7 +242,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","l3o","epg","extsubnet") }}'
 
   - name: Create BDs
-    aci_bd:
+    cisco.aci.aci_bd:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       vrf: '{{ item.tenant_bd_vrf }}'
@@ -254,7 +254,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","bd") }}'
 
   - name: Create BD subnets
-    aci_bd_subnet:
+    cisco.aci.aci_bd_subnet:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       bd: '{{ item.tenant_bd_name }}'
@@ -266,7 +266,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","bd","subnet") }}'
 
   - name: Create Application Profiles
-    aci_ap:
+    cisco.aci.aci_ap:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       app_profile: '{{ item.tenant_app_name }}'
@@ -274,7 +274,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","app") }}'
 
   - name: Create EPGs
-    aci_epg:
+    cisco.aci.aci_epg:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       app_profile: '{{ item.tenant_app_name }}'
@@ -285,7 +285,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg") }}'
 
   - name: Create contracts
-    aci_contract:
+    cisco.aci.aci_contract:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       contract: '{{ item.tenant_contract_name }}'
@@ -294,7 +294,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","contract") }}'
 
   - name: Create contract subjects
-    aci_contract_subject:
+    cisco.aci.aci_contract_subject:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       contract: '{{ item.tenant_contract_name }}'
@@ -304,7 +304,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","contract","subject") }}'
 
   - name: Bind contract subjects to filters
-    aci_contract_subject_to_filter:
+    cisco.aci.aci_contract_subject_to_filter:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       contract: '{{ item.tenant_contract_name }}'
@@ -314,7 +314,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","contract","subject") }}'
 
   - name: Bind EPGs to contracts
-    aci_epg_to_contract:
+    cisco.aci.aci_epg_to_contract:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       app_profile: '{{ item.tenant_app_name }}'
@@ -325,7 +325,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","contract") }}'
 
   - name: Associate BDs to L3Outs
-    aci_bd_to_l3out:
+    cisco.aci.aci_bd_to_l3out:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       bd: '{{ item.tenant_bd_name }}'
@@ -334,7 +334,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","bd","l3out") }}'
 
   - name: Bind EPGs to domains
-    aci_epg_to_domain:
+    cisco.aci.aci_epg_to_domain:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       app_profile: '{{ item.tenant_app_name }}'
@@ -346,7 +346,7 @@
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","domains") }}'
 
   - name: Create EPG static paths
-    aci_static_binding_to_epg:
+    cisco.aci.aci_static_binding_to_epg:
       <<: *aci_login
       tenant: '{{ item.tenant_name }}'
       ap: '{{ item.tenant_app_name }}'

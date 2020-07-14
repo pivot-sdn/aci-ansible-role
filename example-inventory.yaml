@@ -1,8 +1,8 @@
 fabric01:
   hosts:
     apic1:
-      apic_host: null
-      apic_password: null
+      apic_host: 192.168.253.17
+      apic_password: ajlab.local
       apic_username: admin
   vars:
     aci_topology:
@@ -159,6 +159,10 @@ fabric01:
             name: Port4
             policy_grp: L3Out-3
             to: 4
+          - from: 5
+            name: Port5
+            policy_grp: baremetal-access
+            to: 5
         - name: Leaf2-IntPro
           port_selector:
           - from: 1

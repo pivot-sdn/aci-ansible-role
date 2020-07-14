@@ -1,6 +1,8 @@
 - name: Deploy topology using ACI model
   hosts: '*apic1'
   gather_facts: no
+  collections:
+    - cisco.aci
 
   roles:
   - role: datacenter.aci-model
