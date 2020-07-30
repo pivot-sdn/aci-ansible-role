@@ -1,0 +1,35 @@
+fabric01:
+    hosts:
+      apic1:
+        apic_host: 192.168.253.17
+        apic_password: ajlab.local
+        apic_username: admin
+    vars:
+      aci_topology:
+        access_policy:
+        - interface_policy_group:
+          - name: Host1-L101-Eth1-IntPolGrp
+            aaep: Phys-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: ''
+            lldp_pol: ''
+            type: leaf
+          - name: Host2-L101-Eth1-IntPolGrp
+            aaep: Phys-AAEP
+            cdp_pol: ''
+            lacp_pol: ''
+            lldp_pol: ''
+            type: leaf
+        - interface_policy_profile:
+          - name: Leaf1-IntPro
+            port_selector:
+            - name: Port25
+              from: '25'
+              to: '25'
+              policy_grp: Host1-L101-Eth1-IntPolGrp
+            - name: Port26
+              from: '26'
+              to: '26'
+              policy_grp: Host2-L101-Eth1-IntPolGrp
+      apic_use_proxy: false
+      apic_validate_certs: false  
