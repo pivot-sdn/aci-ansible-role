@@ -251,12 +251,12 @@ fabric01:
             to: 208
           name: Leaf8-SwPro
       system_settings:
-      - bgp_asn:
-          ASN: 65500
-          Nodes:
-          - 101
-          - 102
-          Pod: 1
+      - bgprr:
+        - asn: 65500
+          nodes:
+          - id: 101
+          - id: 102
+          pod: 1
       tenant:
       - app:
         - epg:

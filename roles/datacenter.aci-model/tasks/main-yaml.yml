@@ -21,7 +21,42 @@
   # ***********TIER1 CONFIGURATIONS**************
   # Currently no module for creating BGP route reflectors
   # I will add a manual REST call for this later
-  
+
+  - name: Configure BGP ASN
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/fabric/bgpInstP-default/as.json
+      method: post
+      content:
+        {
+            "bgpAsP": {
+                "attributes": {
+                    "dn": "uni/fabric/bgpInstP-default/as",
+                    "asn": "{{ item.system_settings_bgprr_asn }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","bgprr") }}'
+
+  - name: Add BGP Route Reflector Nodes
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/fabric/bgpInstP-default/rr/node-{{ item.system_settings_bgprr_nodes_id }}.json
+      method: post
+      content:
+        {
+            "bgpRRNodePEp": {
+                "attributes": {
+                    "dn": "uni/fabric/bgpInstP-default/rr/node-{{ item.system_settings_bgprr_nodes_id }}",
+                    "id": "{{ item.system_settings_bgprr_nodes_id }}",
+                    "rn": "node-{{ item.system_settings_bgprr_nodes_id }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","bgprr","nodes") }}'
+
   - name: Create Virtual Port Channel protection groups
     cisco.aci.aci_switch_policy_vpc_protection_group:
       <<: *aci_login
