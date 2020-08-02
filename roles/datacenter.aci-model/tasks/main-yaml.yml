@@ -152,6 +152,35 @@
       state: '{{ item.access_policy_aci_aep_domains_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","domains") }}'
 
+  - name: Attach Application EPGs to AAEP
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/mo/uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default.json
+        method: post
+        content:
+            {
+                "infraGeneric": {
+                    "attributes": {
+                        "dn": "uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default",
+                        "name": "default",
+                        "status": "created,modified"
+                    },
+                    "children": [
+                        {
+                            "infraRsFuncToEpg": {
+                                "attributes": {
+                                    "tDn": "uni/tn-{{ item.access_policy_aci_aep_epg_tenant }}/ap-{{ item.access_policy_aci_aep_epg_ap }}/epg-{{ item.access_policy_aci_aep_epg_name }}",
+                                    "status": "created,modified",
+                                    "encap": "vlan-{{ item.access_policy_aci_aep_epg_vlan }}",
+                                    "mode": "{{ item.access_policy_aci_aep_epg_mode }}"
+                                },
+                                "children": []
+                            }
+                        }
+                    ]
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","epg") }}'
 
   # ***********TIER2 CONFIGURATIONS**************
   - name: Add leaf interface policy groups
@@ -288,16 +317,18 @@
       state: '{{ item.tenant_bd_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","bd") }}'
 
-  - name: Create BD subnets
+  - name: Add Subnets to BDs
     cisco.aci.aci_bd_subnet:
-      <<: *aci_login
-      tenant: '{{ item.tenant_name }}'
-      bd: '{{ item.tenant_bd_name }}'
-      gateway: '{{ item.tenant_bd_subnet_address }}'
-      mask: '{{ item.tenant_bd_subnet_mask }}'
-      enable_vip: '{{ item.tenant_bd_subnet_isvip }}'
-      scope: '{{ item.tenant_bd_subnet_bd_sub_scope }}'
-      state: '{{ item.tenant_bd_subnet_state | default("present") }}'
+        <<: *aci_login
+        tenant: '{{ item.tenant_name }}'
+        bd: '{{ item.tenant_bd_name }}'
+        gateway: '{{ item.tenant_bd_subnet_gateway }}'
+        mask: '{{ item.tenant_bd_subnet_cidr_mask }}'
+        enable_vip: '{{ item.tenant_bd_subnet_vip }}'
+        preferred: '{{ item.tenant_bd_subnet_preferred }}'
+        scope: '{{ item.tenant_bd_subnet_scope }}'
+        subnet_control: '{{ item.tenant_bd_subnet_subnet_control | default("unspecified") }}'
+        state: '{{ item.tenant_bd_subnet_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","bd","subnet") }}'
 
   - name: Create Application Profiles
@@ -319,6 +350,30 @@
       state: '{{ item.tenant_app_epg_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg") }}'
 
+  - name: Create Filters
+    cisco.aci.aci_filter:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      filter: '{{ item.tenant_filter_name }}'
+      description: '{{ item.tenant_filter_description }}'
+      state: '{{ item.tenant_filter_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","filter") }}'
+
+  - name: Create Filter Entries
+    cisco.aci.aci_filter_entry:
+      <<: *aci_login
+      tenant: '{{ item.tenant_name }}'
+      filter: '{{ item.tenant_filter_name }}'
+      entry: '{{ item.tenant_filter_entry_name }}'
+      ether_type: '{{ item.tenant_filter_entry_ether_type | default("unspecified") }}'
+      ip_protocol: '{{ item.tenant_filter_entry_ip_protocol | default("unspecified") }}'
+      icmp_msg_type: '{{ item.tenant_filter_entry_icmp_msg_type | default("unspecified") }}'
+      stateful: '{{ item.tenant_filter_entry_stateful }}'
+      dst_port_start: '{{ item.tenant_filter_entry_dst_port_start | default("unspecified") }}'
+      dst_port_end: '{{ item.tenant_filter_entry_dst_port_end | default("unspecified") }}'
+      state: '{{ item.tenant_filter_entry_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","filter","entry") }}'
+
   - name: Create contracts
     cisco.aci.aci_contract:
       <<: *aci_login
@@ -334,7 +389,7 @@
       tenant: '{{ item.tenant_name }}'
       contract: '{{ item.tenant_contract_name }}'
       contract_subject: '{{ item.tenant_contract_subject_name }}'
-      reverse_filter: yes
+      reverse_filter: '{{ item.tenant_contract_subject_reverse_filter }}'
       state: '{{ item.tenant_contract_subject_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","contract","subject") }}'
 
@@ -358,6 +413,38 @@
       contract_type: '{{ item.tenant_app_epg_contract_type }}'
       state: '{{ item.tenant_app_epg_contract_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","contract") }}'
+
+  - name: Bind L3Out EPGs to Contracts
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/instP-{{ item.tenant_l3o_epg_name }}.json
+      method: post
+      content:
+        {
+            "fvRsProv": {
+                "attributes": {
+                    "tnVzBrCPName": "{{ item.tenant_l3o_epg_provided_contract_name }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o","epg","provided_contract") }}'
+
+  - name: Create VRF EPG Collection (vzANY)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/mo/uni/tn-{{ item.tenant_name }}/ctx-{{ item.tenant_vrf_name }}/any.json
+        method: post
+        content:
+            {
+                "vzRsAnyToCons": {
+                    "attributes": {
+                        "tnVzBrCPName": "{{ item.tenant_vrf_epg_collection_consumed_contracts_contract }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("tenant","vrf","epg_collection_consumed_contracts") }}'
 
   - name: Associate BDs to L3Outs
     cisco.aci.aci_bd_to_l3out:

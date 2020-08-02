@@ -82,6 +82,12 @@ fabric01:
             type: phys
           enable_infra_vlan: false
           name: Phys-AAEP
+          epg:
+            - name: Web-EPG
+              tenant: Tenant1
+              ap: Production-Network
+              vlan: 10
+              mode: regular
         - description: 
           domains:
           - name: VMM-Dom
@@ -97,6 +103,7 @@ fabric01:
             type: l3dom
           enable_infra_vlan: false
           name: External-AAEP
+          epg:
       - interface_policy_group:
         - aaep: Phys-AAEP
           cdp_pol: CDP-ON
@@ -269,12 +276,18 @@ fabric01:
               vm_provider: vmware
             name: Web-EPG
             pref_grp: no
+            contract: 
+              - name: Web-Con
+                type: provider
           - bd: App-BD
             domains:
             - name: Phys-Dom
               type: phys
             name: App-EPG
             pref_grp: no
+            contract: 
+              - name: App-Con
+                type: provider
           - bd: DB-BD
             domains:
             - name: Phys-Dom
@@ -290,6 +303,13 @@ fabric01:
           - name: Prod-L3Out
           name: Web-BD
           vrf: Prod-VRF
+          subnet:
+            - gateway: 10.0.0.1
+              cidr_mask: 24
+              vip: no
+              preferred: no
+              scope: public
+              subnet_control: unspecified
         - arp_flood: yes
           enable_routing: no
           l2_unk_uni: flood
@@ -298,6 +318,7 @@ fabric01:
           - name: Dev-L3Out
           name: App-BD
           vrf: Prod-VRF
+          subnet:
         - arp_flood: yes
           enable_routing: no
           l2_unk_uni: flood
@@ -305,6 +326,7 @@ fabric01:
           - name: Dev-L3Out
           name: DB-BD
           vrf: Dev-VRF
+          subnet:
         description: 
         l3o:
         - description: null
@@ -314,9 +336,11 @@ fabric01:
             extsubnet:
             - description: null
               network: 0.0.0.0/0
-              scope: export-rtctrl,shared-rtctrl
+              scope: import-security
             name: Prod-L3Out-EPG
             preferred_group: no
+            provided_contract:
+              - name: L3Out-Con
           l3protocol: ospf
           name: Prod-L3Out
           route_control: export
@@ -331,6 +355,7 @@ fabric01:
               scope: export-rtctrl,shared-rtctrl
             name: Dev-L3Out-EPG
             preferred_group: no
+            contract: []
           l3protocol: ospf
           name: Dev-L3Out
           route_control: export
@@ -339,6 +364,51 @@ fabric01:
         vrf:
         - name: Prod-VRF
           pref_grp: disabled
+          epg_collection_consumed_contracts:
+            - contract: Web-Con
+            - contract: App-Con
+            - contract: L3Out-Con
+        contract:
+          - name: Web-Con
+            scope: context
+            subject:
+              - name: Any
+                reverse_filter: no
+                filter: default
+              - name: Web
+                reverse_filter: yes
+                filter: Web-filter
+          - name: App-Con
+            scope: context
+            subject:
+              - name: App-Subj
+                reverse_filter: yes
+                filter: App-filter
+          - name: L3Out-Con
+            scope: context
+            subject:
+              - name: Any
+                reverse_filter: yes
+                filter: default
+        filter:
+          - name: Web-filter
+            description: Permit HTTPS Traffic
+            entry:
+              - name: HTTPS
+                ether_type: ip
+                ip_protocol: tcp
+                stateful: no
+                dst_port_start: 443
+                dst_port_end: 443
+          - name: App-filter
+            description: Permit 8080 Traffic
+            entry:
+              - name: tcp-8080
+                ether_type: ip
+                ip_protocol: tcp
+                stateful: no
+                dst_port_start: 8080
+                dst_port_end: 8080
       - app:
         - epg:
           - bd: Web-BD
@@ -355,6 +425,7 @@ fabric01:
           l3out: []
           name: Web-BD
           vrf: Prod-VRF
+          subnet:
         description: 
         l3o: []
         name: Tenant2
