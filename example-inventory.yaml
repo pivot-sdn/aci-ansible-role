@@ -7,432 +7,440 @@ fabric01:
   vars:
     aci_topology:
       access_policy:
-      - switch_policy_virtual_port_channel:
-        - grp_id: 201
-          name: LEAF1-LEAF2-VPC
-          policy: default
-          switch1: 201
-          switch2: 202
-      - interface_policy_lldp:
-        - name: LLDP-ON
-          receive: yes
-          transmit: yes
-        - name: LLDP-OFF
-          receive: no
-          transmit: no
-        - name: LLDP-RX
-          receive: yes
-          transmit: no
-        - name: LLDP-TX
-          receive: no
-          transmit: yes
-      - interface_policy_cdp:
-        - name: CDP-ON
-          state: yes
-        - name: CDP-OFF
-          state: no
-      - interface_policy_port_channel:
-        - mode: active
-          name: LACP-ACTIVE
-        - mode: off
-          name: STATIC-ON
-        - mode: mac-pin
-          name: MAC-PIN
-      - vlan_pool:
-        - alloc: static
-          encap_block:
-          - from: 2
-            to: 2
-          - from: 3
-            to: 3
-          - from: 4
-            to: 4
-          - from: 5
-            to: 5
-          name: Phys-VLAN-Pool
-        - alloc: dynamic
-          encap_block:
-          - from: 9
-            to: 15
-          name: VMM-VLAN-Pool
-        - alloc: static
-          encap_block:
-          - from: 20
-            to: 20
-          name: L3Out-VLAN-Pool
-      - domain:
-        - name: Phys-Dom
-          type: phys
-          vlan_pool: Phys-VLAN-Pool
-          vlan_pool_allocation: static
-        - name: L3Out-Dom
-          type: l3dom
-          vlan_pool: L3Out-VLAN-Pool
-          vlan_pool_allocation: static
-        - name: VMM-Dom
-          type: vmm
-          vlan_pool: VMM-VLAN-Pool
-          vlan_pool_allocation: dynamic
-          vm_provider: vmware
-          vswitch_type: dvs
-      - aci_aep:
-        - description: 
-          domains:
+        - switch_policy_virtual_port_channel:
+          - grp_id: 201
+            name: LEAF1-LEAF2-VPC
+            policy: default
+            switch1: 201
+            switch2: 202
+        - interface_policy_lldp:
+          - name: LLDP-ON
+            receive: yes
+            transmit: yes
+          - name: LLDP-OFF
+            receive: no
+            transmit: no
+          - name: LLDP-RX
+            receive: yes
+            transmit: no
+          - name: LLDP-TX
+            receive: no
+            transmit: yes
+        - interface_policy_cdp:
+          - name: CDP-ON
+            state: yes
+          - name: CDP-OFF
+            state: no
+        - interface_policy_port_channel:
+          - mode: active
+            name: LACP-ACTIVE
+          - mode: off
+            name: STATIC-ON
+          - mode: mac-pin
+            name: MAC-PIN
+        - vlan_pool:
+          - alloc: static
+            encap_block:
+            - from: 2
+              to: 2
+            - from: 3
+              to: 3
+            - from: 4
+              to: 4
+            - from: 5
+              to: 5
+            name: Phys-VLAN-Pool
+          - alloc: dynamic
+            encap_block:
+            - from: 9
+              to: 15
+            name: VMM-VLAN-Pool
+          - alloc: static
+            encap_block:
+            - from: 20
+              to: 20
+            name: L3Out-VLAN-Pool
+        - domain:
           - name: Phys-Dom
             type: phys
-          enable_infra_vlan: false
-          name: Phys-AAEP
-          epg:
-            - name: Web-EPG
-              tenant: Tenant1
-              ap: Production-Network
-              vlan: 10
-              mode: regular
-        - description: 
-          domains:
-          - name: VMM-Dom
-            type: vmm
-            vm_provider: vmware
-          enable_infra_vlan: false
-          name: VMM-AAEP
-        - description: 
-          domains:
-          - name: Phys-Dom
-            type: phys
+            vlan_pool: Phys-VLAN-Pool
+            vlan_pool_allocation: static
           - name: L3Out-Dom
             type: l3dom
-          enable_infra_vlan: false
-          name: External-AAEP
-          epg:
-      - interface_policy_group:
-        - aaep: Phys-AAEP
-          cdp_pol: CDP-ON
-          lacp_pol: 
-          lldp_pol: 
-          name: baremetal-access-cdp-on
-          type: leaf
-        - aaep: Phys-AAEP
-          cdp_pol: 
-          lacp_pol: 
-          lldp_pol: 
-          name: baremetal-access
-          type: leaf
-        - aaep: External-AAEP
-          cdp_pol: CDP-ON
-          lacp_pol: LACP-ACTIVE
-          lldp_pol: 
-          name: L2-External-VPC
-          type: node
-        - aaep: External-AAEP
-          cdp_pol: CDP-ON
-          lacp_pol: 
-          lldp_pol: 
-          name: L3Out-1
-          type: leaf
-        - aaep: External-AAEP
-          cdp_pol: CDP-ON
-          lacp_pol: 
-          lldp_pol: 
-          name: L3Out-2
-          type: leaf
-        - aaep: External-AAEP
-          cdp_pol: CDP-ON
-          lacp_pol: 
-          lldp_pol: 
-          name: L3Out-3
-          type: leaf
-        - aaep: External-AAEP
-          cdp_pol: CDP-ON
-          lacp_pol: 
-          lldp_pol: 
-          name: L3Out-4
-          type: leaf
-      - interface_policy_profile:
-        - name: Leaf1-IntPro
-          port_selector:
-          - from: 1
-            name: Port1
-            policy_grp: L2-External-VPC
-            to: 1
-          - from: 2
-            name: Port2
-            policy_grp: L2-External-VPC
-            to: 2
-          - from: 3
-            name: Port3
-            policy_grp: L3Out-1
-            to: 3
-          - from: 4
-            name: Port4
-            policy_grp: L3Out-3
-            to: 4
-          - from: 5
-            name: Port5
-            policy_grp: baremetal-access
-            to: 5
-        - name: Leaf2-IntPro
-          port_selector:
-          - from: 1
-            name: Port1
-            policy_grp: L2-External-VPC
-            to: 1
-          - from: 2
-            name: Port2
-            policy_grp: L2-External-VPC
-            to: 2
-          - from: 3
-            name: Port3
-            policy_grp: L3Out-2
-            to: 3
-          - from: 4
-            name: Port4
-            policy_grp: L3Out-4
-            to: 4
-        - name: Leaf3-IntPro
-          port_selector: []
-        - name: Leaf4-IntPro
-          port_selector: []
-        - name: Leaf5-IntPro
-          port_selector: []
-        - name: Leaf6-IntPro
-          port_selector: []
-        - name: Leaf7-IntPro
-          port_selector: []
-        - name: Leaf8-IntPro
-          port_selector: []
-      - switch_policy_profile:
-        - interface_selector_profile:
+            vlan_pool: L3Out-VLAN-Pool
+            vlan_pool_allocation: static
+          - name: VMM-Dom
+            type: vmm
+            vlan_pool: VMM-VLAN-Pool
+            vlan_pool_allocation: dynamic
+            vm_provider: vmware
+            vswitch_type: dvs
+        - aci_aep:
+          - name: Phys-AAEP
+            description: 
+            domains:
+              - name: Phys-Dom
+                type: phys
+            enable_infra_vlan: false
+            epg:
+              - name: Web-EPG
+                status: null
+                tenant: Tenant1
+                ap: Production-Network
+                vlan: 10
+                mode: regular
+          - name: VMM-AAEP
+            description: 
+            domains:
+              - name: VMM-Dom
+                type: vmm
+                vm_provider: vmware
+            enable_infra_vlan: false
+            epg:
+          - name: External-AAEP
+            description: null
+            domains:
+              - name: Phys-Dom
+                type: phys
+              - name: L3Out-Dom
+                type: l3dom
+            enable_infra_vlan: false
+            epg:
+        - interface_policy_group:
+          - aaep: Phys-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: 
+            lldp_pol: 
+            name: baremetal-access-cdp-on
+            type: leaf
+          - aaep: Phys-AAEP
+            cdp_pol: 
+            lacp_pol: 
+            lldp_pol: 
+            name: baremetal-access
+            type: leaf
+          - aaep: External-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: LACP-ACTIVE
+            lldp_pol: 
+            name: L2-External-VPC
+            type: node
+          - aaep: External-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: 
+            lldp_pol: 
+            name: L3Out-1
+            type: leaf
+          - aaep: External-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: 
+            lldp_pol: 
+            name: L3Out-2
+            type: leaf
+          - aaep: External-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: 
+            lldp_pol: 
+            name: L3Out-3
+            type: leaf
+          - aaep: External-AAEP
+            cdp_pol: CDP-ON
+            lacp_pol: 
+            lldp_pol: 
+            name: L3Out-4
+            type: leaf
+        - interface_policy_profile:
           - name: Leaf1-IntPro
-          leaf_selector:
-          - from: 201
-            name: Leaf1
-            to: 201
-          name: Leaf1-SwPro
-        - interface_selector_profile:
+            port_selector:
+            - from: 1
+              name: Port1
+              policy_grp: L2-External-VPC
+              to: 1
+            - from: 2
+              name: Port2
+              policy_grp: L2-External-VPC
+              to: 2
+            - from: 3
+              name: Port3
+              policy_grp: L3Out-1
+              to: 3
+            - from: 4
+              name: Port4
+              policy_grp: L3Out-3
+              to: 4
+            - from: 5
+              name: Port5
+              policy_grp: baremetal-access
+              to: 5
           - name: Leaf2-IntPro
-          leaf_selector:
-          - from: 202
-            name: Leaf2
-            to: 202
-          name: Leaf2-SwPro
-        - interface_selector_profile:
+            port_selector:
+            - from: 1
+              name: Port1
+              policy_grp: L2-External-VPC
+              to: 1
+            - from: 2
+              name: Port2
+              policy_grp: L2-External-VPC
+              to: 2
+            - from: 3
+              name: Port3
+              policy_grp: L3Out-2
+              to: 3
+            - from: 4
+              name: Port4
+              policy_grp: L3Out-4
+              to: 4
           - name: Leaf3-IntPro
-          leaf_selector:
-          - from: 203
-            name: Leaf3
-            to: 203
-          name: Leaf3-SwPro
-        - interface_selector_profile:
+            port_selector: []
           - name: Leaf4-IntPro
-          leaf_selector:
-          - from: 204
-            name: Leaf4
-            to: 204
-          name: Leaf4-SwPro
-        - interface_selector_profile:
+            port_selector: []
           - name: Leaf5-IntPro
-          leaf_selector:
-          - from: 205
-            name: Leaf5
-            to: 205
-          name: Leaf5-SwPro
-        - interface_selector_profile:
+            port_selector: []
           - name: Leaf6-IntPro
-          leaf_selector:
-          - from: 206
-            name: Leaf6
-            to: 206
-          name: Leaf6-SwPro
-        - interface_selector_profile:
+            port_selector: []
           - name: Leaf7-IntPro
-          leaf_selector:
-          - from: 207
-            name: Leaf7
-            to: 207
-          name: Leaf7-SwPro
-        - interface_selector_profile:
+            port_selector: []
           - name: Leaf8-IntPro
-          leaf_selector:
-          - from: 208
-            name: Leaf8
-            to: 208
-          name: Leaf8-SwPro
+            port_selector: []
+        - switch_policy_profile:
+          - interface_selector_profile:
+            - name: Leaf1-IntPro
+            leaf_selector:
+            - from: 201
+              name: Leaf1
+              to: 201
+            name: Leaf1-SwPro
+          - interface_selector_profile:
+            - name: Leaf2-IntPro
+            leaf_selector:
+            - from: 202
+              name: Leaf2
+              to: 202
+            name: Leaf2-SwPro
+          - interface_selector_profile:
+            - name: Leaf3-IntPro
+            leaf_selector:
+            - from: 203
+              name: Leaf3
+              to: 203
+            name: Leaf3-SwPro
+          - interface_selector_profile:
+            - name: Leaf4-IntPro
+            leaf_selector:
+            - from: 204
+              name: Leaf4
+              to: 204
+            name: Leaf4-SwPro
+          - interface_selector_profile:
+            - name: Leaf5-IntPro
+            leaf_selector:
+            - from: 205
+              name: Leaf5
+              to: 205
+            name: Leaf5-SwPro
+          - interface_selector_profile:
+            - name: Leaf6-IntPro
+            leaf_selector:
+            - from: 206
+              name: Leaf6
+              to: 206
+            name: Leaf6-SwPro
+          - interface_selector_profile:
+            - name: Leaf7-IntPro
+            leaf_selector:
+            - from: 207
+              name: Leaf7
+              to: 207
+            name: Leaf7-SwPro
+          - interface_selector_profile:
+            - name: Leaf8-IntPro
+            leaf_selector:
+            - from: 208
+              name: Leaf8
+              to: 208
+            name: Leaf8-SwPro
       system_settings:
-      - bgprr:
-        - asn: 65500
-          nodes:
-          - id: 101
-          - id: 102
-          pod: 1
+        - bgprr:
+          - asn: 65501
+            pod: 1
+            nodes:
+              - id: 101
+              - id: 102
       tenant:
-      - app:
-        - epg:
-          - bd: Web-BD
-            domains:
-            - name: Phys-Dom
-              type: phys
-            - name: VMM-Dom
-              type: vmm
-              vm_provider: vmware
-            name: Web-EPG
-            pref_grp: no
-            contract: 
-              - name: Web-Con
-                type: provider
-          - bd: App-BD
-            domains:
-            - name: Phys-Dom
-              type: phys
-            name: App-EPG
-            pref_grp: no
-            contract: 
-              - name: App-Con
-                type: provider
-          - bd: DB-BD
-            domains:
-            - name: Phys-Dom
-              type: phys
-            name: DB-EPG
-            pref_grp: no
-          name: Production-Network
-        bd:
-        - arp_flood: yes
-          enable_routing: no
-          l2_unk_uni: flood
-          l3out:
-          - name: Prod-L3Out
-          name: Web-BD
-          vrf: Prod-VRF
-          subnet:
-            - gateway: 10.0.0.1
-              cidr_mask: 24
-              vip: no
-              preferred: no
-              scope: public
-              subnet_control: unspecified
-        - arp_flood: yes
-          enable_routing: no
-          l2_unk_uni: flood
-          l3out:
-          - name: Prod-L3Out
-          - name: Dev-L3Out
-          name: App-BD
-          vrf: Prod-VRF
-          subnet:
-        - arp_flood: yes
-          enable_routing: no
-          l2_unk_uni: flood
-          l3out:
-          - name: Dev-L3Out
-          name: DB-BD
-          vrf: Dev-VRF
-          subnet:
-        description: 
-        l3o:
-        - description: null
-          domain: L3Out-Dom
-          epg:
-          - description: null
-            extsubnet:
-            - description: null
-              network: 0.0.0.0/0
-              scope: import-security
-            name: Prod-L3Out-EPG
-            preferred_group: no
-            provided_contract:
-              - name: L3Out-Con
-          l3protocol: ospf
-          name: Prod-L3Out
-          route_control: export
-          vrf: Prod-VRF
-        - description: null
-          domain: L3Out-Dom
-          epg:
-          - description: null
-            extsubnet:
-            - description: null
-              network: 0.0.0.0/0
-              scope: export-rtctrl,shared-rtctrl
-            name: Dev-L3Out-EPG
-            preferred_group: no
-            contract: []
-          l3protocol: ospf
-          name: Dev-L3Out
-          route_control: export
-          vrf: Dev-VRF
-        name: Tenant1
-        vrf:
-        - name: Prod-VRF
-          pref_grp: disabled
-          epg_collection_consumed_contracts:
-            - contract: Web-Con
-            - contract: App-Con
-            - contract: L3Out-Con
-        contract:
-          - name: Web-Con
-            scope: context
-            subject:
-              - name: Any
-                reverse_filter: no
-                filter: default
-              - name: Web
-                reverse_filter: yes
-                filter: Web-filter
-          - name: App-Con
-            scope: context
-            subject:
-              - name: App-Subj
-                reverse_filter: yes
-                filter: App-filter
-          - name: L3Out-Con
-            scope: context
-            subject:
-              - name: Any
-                reverse_filter: yes
-                filter: default
-        filter:
-          - name: Web-filter
-            description: Permit HTTPS Traffic
-            entry:
-              - name: HTTPS
-                ether_type: ip
-                ip_protocol: tcp
-                stateful: no
-                dst_port_start: 443
-                dst_port_end: 443
-          - name: App-filter
-            description: Permit 8080 Traffic
-            entry:
-              - name: tcp-8080
-                ether_type: ip
-                ip_protocol: tcp
-                stateful: no
-                dst_port_start: 8080
-                dst_port_end: 8080
-      - app:
-        - epg:
-          - bd: Web-BD
-            domains:
-            - name: Phys-Dom
-              type: phys
-            name: Web-EPG
-            pref_grp: no
-          name: Dev-Network
-        bd:
-        - arp_flood: yes
-          enable_routing: no
-          l2_unk_uni: flood
-          l3out: []
-          name: Web-BD
-          vrf: Prod-VRF
-          subnet:
-        description: 
-        l3o: []
-        name: Tenant2
-        vrf:
-        - name: Prod-VRF
-          pref_grp: disabled
-        - name: Dev-VRF
-          pref_grp: disabled
+        - name: Tenant1
+          description: 
+          app:
+            - name: Production-Network
+              epg:
+                - name: Web-EPG
+                  bd: Web-BD
+                  domains:
+                    - name: Phys-Dom
+                      type: phys
+                    - name: VMM-Dom
+                      type: vmm
+                      vm_provider: vmware
+                  pref_grp: no
+                  contract: 
+                    - name: Web-Con
+                      type: provider
+                  static_port:
+                    - interface: 1/20
+                      interface_mode: access
+                      interface_type: switch_port
+                      immediacy: immediate
+                      encap_id: 5
+                      pod_id: 1
+                      leafs:
+                        - 101
+                    - interface: L2-External-VPC
+                      interface_mode: trunk
+                      interface_type: vpc
+                      immediacy: immediate
+                      encap_id: 5
+                      pod_id: 1
+                      leafs:
+                        - 101
+                        - 102
+                - name: App-EPG
+                  bd: App-BD
+                  domains:
+                    - name: Phys-Dom
+                      type: phys
+                  pref_grp: no
+                  contract: 
+                    - name: App-Con
+                      type: provider
+                - name: DB-EPG
+                  bd: DB-BD
+                  domains:
+                    - name: Phys-Dom
+                      type: phys
+                  pref_grp: no
+            - name: Dev-Network
+              epg:
+              - bd: Web-BD
+                domains:
+                  - name: Phys-Dom
+                    type: phys
+                name: Web-EPG
+                pref_grp: no
+          bd:
+            - name: Web-BD
+              arp_flood: yes
+              enable_routing: no
+              l2_unk_uni: flood
+              l3out:
+              - name: Prod-L3Out
+              vrf: Prod-VRF
+              subnet:
+                - gateway: 10.0.0.1
+                  cidr_mask: 24
+                  vip: no
+                  preferred: no
+                  scope: public
+                  subnet_control: unspecified
+            - name: App-BD
+              arp_flood: yes
+              enable_routing: no
+              l2_unk_uni: flood
+              l3out:
+              - name: Prod-L3Out
+              - name: Dev-L3Out
+              vrf: Prod-VRF
+              subnet:
+            - name: DB-BD
+              arp_flood: yes
+              enable_routing: no
+              l2_unk_uni: flood
+              l3out:
+              - name: Dev-L3Out
+              vrf: Dev-VRF
+              subnet:
+          vrf:
+            - name: Prod-VRF
+              pref_grp: disabled
+              epg_collection_consumed_contracts:
+                - contract: Web-Con
+                - contract: App-Con
+                - contract: L3Out-Con
+          contract:
+            - name: Web-Con
+              scope: context
+              subject:
+                - name: Any
+                  reverse_filter: no
+                  filter: default
+                - name: Web
+                  reverse_filter: yes
+                  filter: Web-filter
+            - name: App-Con
+              scope: context
+              subject:
+                - name: App-Subj
+                  reverse_filter: yes
+                  filter: App-filter
+            - name: L3Out-Con
+              scope: context
+              subject:
+                - name: Any
+                  reverse_filter: yes
+                  filter: default
+          filter:
+            - name: Web-filter
+              description: Permit HTTPS Traffic
+              entry:
+                - name: HTTPS
+                  ether_type: ip
+                  ip_protocol: tcp
+                  stateful: no
+                  dst_port_start: 443
+                  dst_port_end: 443
+            - name: App-filter
+              description: Permit 8080 Traffic
+              entry:
+                - name: tcp-8080
+                  ether_type: ip
+                  ip_protocol: tcp
+                  stateful: no
+                  dst_port_start: 8080
+                  dst_port_end: 8080
+          l3o:
+            - name: Prod-L3Out
+              description: null
+              domain: L3Out-Dom
+              vrf: Prod-VRF
+              l3protocol: ospf
+              route_control: export
+              ospf:
+                - area_type: regular
+                  area_id: 0
+              epg:
+                - name: Prod-L3Out-EPG
+                  description: null
+                  preferred_group: no
+                  extsubnet:
+                    - network: 0.0.0.0/0
+                      description: null
+                      scope: import-security
+                  provided_contract:
+                    - name: L3Out-Con
+              node_profile:
+                - name: Border-Leaves-NodePro
+                  pod: 1
+                  node:
+                    - node_id: 101
+                      router_id: 1.1.1.1
+                    - node_id: 102
+                      router_id: 2.2.2.2
+                  logical_int_pro:
+                    - name: Prod-L3O-Logical-IntPro
+                      paths:
+                        - leaf_id: 201
+                          port: 1/1
+                          ip_address: 11.11.11.1/31
+                        - leaf_id: 202
+                          port: 1/1
+                          ip_address: 12.12.12.1/31
     apic_use_proxy: false
     apic_validate_certs: false

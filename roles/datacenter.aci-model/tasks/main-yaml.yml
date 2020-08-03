@@ -18,10 +18,6 @@
   delegate_to: localhost
 
   block:
-  # ***********TIER1 CONFIGURATIONS**************
-  # Currently no module for creating BGP route reflectors
-  # I will add a manual REST call for this later
-
   - name: Configure BGP ASN
     cisco.aci.aci_rest:
       <<: *aci_login
@@ -32,7 +28,8 @@
             "bgpAsP": {
                 "attributes": {
                     "dn": "uni/fabric/bgpInstP-default/as",
-                    "asn": "{{ item.system_settings_bgprr_asn }}"
+                    "asn": "{{ item.system_settings_bgprr_asn }}",
+                    "status": "{{ item.system_settings_bgprr_status | default() }}"
                 },
                 "children": []
             }
@@ -50,7 +47,8 @@
                 "attributes": {
                     "dn": "uni/fabric/bgpInstP-default/rr/node-{{ item.system_settings_bgprr_nodes_id }}",
                     "id": "{{ item.system_settings_bgprr_nodes_id }}",
-                    "rn": "node-{{ item.system_settings_bgprr_nodes_id }}"
+                    "rn": "node-{{ item.system_settings_bgprr_nodes_id }}",
+                    "status": "{{ item.system_settings_bgprr_nodes_status | default() }}"
                 },
                 "children": []
             }
@@ -163,7 +161,7 @@
                     "attributes": {
                         "dn": "uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default",
                         "name": "default",
-                        "status": "created,modified"
+                        "status": "{{ item.access_policy_aci_aep_epg_status | default() }}"
                     },
                     "children": [
                         {
@@ -277,9 +275,28 @@
       domain: '{{ item.tenant_l3o_domain }}'
       vrf: '{{ item.tenant_l3o_vrf }}'
       l3protocol: '{{ item.tenant_l3o_l3protocol }}'
+      asn: '{{ item.tenant_l3o_asn | default(None) or omit }}'
       route_control: '{{ item.tenant_l3o_route_control }}'
       state: '{{ item.tenant_l3o_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","l3o") }}'
+
+  - name: Configure OSPF Area
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/ospfExtP.json
+      method: post
+      content:
+        {
+            "ospfExtP": {
+                "attributes": {
+                    "dn": "uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/ospfExtP",
+                    "areaId": "{{ item.tenant_l3o_ospf_area_id }}",
+                    "areaType": "{{ item.tenant_l3o_ospf_area_type }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o","ospf") }}'
 
   - name: Add a new L3Out EPG
     cisco.aci.aci_l3out_extepg:
@@ -304,6 +321,71 @@
       scope: '{{ item.tenant_l3o_epg_extsubnet_scope }}'
       state: '{{ item.tenant_l3o_epg_extsubnet_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","l3o","epg","extsubnet") }}'
+
+  - name: Configure L3Out Node Profile
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/lnodep-{{ item.tenant_l3o_node_profile_name }}.json
+      method: post
+      content:
+        {
+          "l3extLNodeP": {
+              "attributes": {
+                  "dn": "uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/lnodep-{{ item.tenant_l3o_node_profile_name }}",
+                  "name": "{{ item.tenant_l3o_node_profile_name }}",
+                  "rn": "lnodep-{{ item.tenant_l3o_node_profile_name }}",
+                  "status": "{{ item.tenant_l3o_node_profile_status | default() }}"
+              },
+              "children": [
+                  {
+                      "l3extRsNodeL3OutAtt": {
+                          "attributes": {
+                              "dn": "uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/lnodep-{{ item.tenant_l3o_node_profile_name }}/rsnodeL3OutAtt-[topology/pod-{{ item.tenant_l3o_node_profile_pod }}/node-{{ item.tenant_l3o_node_profile_node_node_id }}]",
+                              "tDn": "topology/pod-{{ item.tenant_l3o_node_profile_pod }}/node-{{ item.tenant_l3o_node_profile_node_node_id }}",
+                              "rtrId": "{{ item.tenant_l3o_node_profile_node_router_id }}",
+                              "rn": "rsnodeL3OutAtt-[topology/pod-{{ item.tenant_l3o_node_profile_pod }}/node-{{ item.tenant_l3o_node_profile_node_node_id }}]",
+                              "status": "{{ item.tenant_l3o_node_profile_node_status | default() }}"
+                          },
+                          "children": []
+                      }
+                  }
+              ]
+          }
+      }
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o","node_profile","node") }}'
+
+  - name: Configure L3Out Logical Interface Profiles
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/lnodep-{{ item.tenant_l3o_node_profile_name }}/lifp-{{ item.tenant_l3o_node_profile_logical_int_pro_name }}.json
+      method: post
+      content:
+        {
+            "l3extLIfP": {
+                "attributes": {
+                    "dn": "uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/lnodep-{{ item.tenant_l3o_node_profile_name }}/lifp-{{ item.tenant_l3o_node_profile_logical_int_pro_name }}",
+                    "name": "{{ item.tenant_l3o_node_profile_logical_int_pro_name }}",
+                    "rn": "lifp-{{ item.tenant_l3o_node_profile_logical_int_pro_name }}",
+                    "status": "{{ item.system_settings_bgprr_status | default() }}"
+                },
+                "children": [
+                    {
+                        "l3extRsPathL3OutAtt": {
+                            "attributes": {
+                                "dn": "uni/tn-{{ item.tenant_name }}/out-{{ item.tenant_l3o_name }}/lnodep-{{ item.tenant_l3o_node_profile_name }}/lifp-{{ item.tenant_l3o_node_profile_logical_int_pro_name }}/rspathL3OutAtt-[topology/pod-{{ item.tenant_l3o_node_profile_pod }}/paths-{{ item.tenant_l3o_node_profile_logical_int_pro_paths_leaf_id }}/pathep-[eth{{ item.tenant_l3o_node_profile_logical_int_pro_paths_port }}]]",
+                                "ifInstT": "l3-port",
+                                "addr": "{{ item.tenant_l3o_node_profile_logical_int_pro_paths_ip_address }}",
+                                "tDn": "topology/pod-{{ item.tenant_l3o_node_profile_pod }}/paths-{{ item.tenant_l3o_node_profile_logical_int_pro_paths_leaf_id }}/pathep-[eth{{ item.tenant_l3o_node_profile_logical_int_pro_paths_port }}]",
+                                "rn": "rspathL3OutAtt-[topology/pod-{{ item.tenant_l3o_node_profile_pod }}/paths-{{ item.tenant_l3o_node_profile_logical_int_pro_paths_leaf_id }}/pathep-[eth{{ item.tenant_l3o_node_profile_logical_int_pro_paths_port }}]]",
+                                "status": "{{ item.system_settings_bgprr_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("tenant","l3o","node_profile","logical_int_pro","paths") }}'
 
   - name: Create BDs
     cisco.aci.aci_bd:
@@ -423,7 +505,8 @@
         {
             "fvRsProv": {
                 "attributes": {
-                    "tnVzBrCPName": "{{ item.tenant_l3o_epg_provided_contract_name }}"
+                    "tnVzBrCPName": "{{ item.tenant_l3o_epg_provided_contract_name }}",
+                    "status": "{{ item.tenant_l3o_epg_provided_contract_status | default() }}"
                 },
                 "children": []
             }
@@ -439,7 +522,8 @@
             {
                 "vzRsAnyToCons": {
                     "attributes": {
-                        "tnVzBrCPName": "{{ item.tenant_vrf_epg_collection_consumed_contracts_contract }}"
+                        "tnVzBrCPName": "{{ item.tenant_vrf_epg_collection_consumed_contracts_contract }}",
+                        "status": "{{ item.tenant_vrf_epg_collection_consumed_contracts_status | default() }}"
                     },
                     "children": []
                 }
