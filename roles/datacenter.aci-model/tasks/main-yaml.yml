@@ -91,6 +91,29 @@
       state: '{{ item.access_policy_interface_policy_port_channel_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_port_channel") }}'
 
+  - name: Configure Link Level Policies
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/infra/hintfpol-{{ item.access_policy_interface_policy_linklevel_name }}.json
+      method: post
+      content:
+        {
+            "fabricHIfPol": {
+                "attributes": {
+                    "dn": "uni/infra/hintfpol-{{ item.access_policy_interface_policy_linklevel_name }}",
+                    "name": "{{ item.access_policy_interface_policy_linklevel_name }}",
+                    "autoNeg": "{{ item.access_policy_interface_policy_linklevel_autonegotiate | default() }}",
+                    "speed": "{{ item.access_policy_interface_policy_linklevel_speed }}",
+                    "linkDebounce": "{{ item.access_policy_interface_policy_linklevel_link_debounce | default() }}",
+                    "fecMode": "{{ item.access_policy_interface_policy_linklevel_fec_mode | default(None) or omit }}",
+                    "rn": "hintfpol-{{ item.access_policy_interface_policy_linklevel_name }}",
+                    "status": "{{ item.access_policy_interface_policy_linklevel_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_linklevel") }}'
+
   - name: Add VLAN pools
     cisco.aci.aci_vlan_pool:
       <<: *aci_login
@@ -149,36 +172,6 @@
       vm_provider: '{{ item.access_policy_aci_aep_domains_vm_provider | default(None) or omit }}'
       state: '{{ item.access_policy_aci_aep_domains_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","domains") }}'
-
-  - name: Attach Application EPGs to AAEP
-    cisco.aci.aci_rest:
-        <<: *aci_login
-        path: /api/mo/uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default.json
-        method: post
-        content:
-            {
-                "infraGeneric": {
-                    "attributes": {
-                        "dn": "uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default",
-                        "name": "default",
-                        "status": "{{ item.access_policy_aci_aep_epg_status | default() }}"
-                    },
-                    "children": [
-                        {
-                            "infraRsFuncToEpg": {
-                                "attributes": {
-                                    "tDn": "uni/tn-{{ item.access_policy_aci_aep_epg_tenant }}/ap-{{ item.access_policy_aci_aep_epg_ap }}/epg-{{ item.access_policy_aci_aep_epg_name }}",
-                                    "status": "created,modified",
-                                    "encap": "vlan-{{ item.access_policy_aci_aep_epg_vlan }}",
-                                    "mode": "{{ item.access_policy_aci_aep_epg_mode }}"
-                                },
-                                "children": []
-                            }
-                        }
-                    ]
-                }
-            }
-    with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","epg") }}'
 
   # ***********TIER2 CONFIGURATIONS**************
   - name: Add leaf interface policy groups
@@ -275,7 +268,7 @@
       domain: '{{ item.tenant_l3o_domain }}'
       vrf: '{{ item.tenant_l3o_vrf }}'
       l3protocol: '{{ item.tenant_l3o_l3protocol }}'
-      asn: '{{ item.tenant_l3o_asn | default(None) or omit }}'
+      asn: '{{ item.tenant_l3o_eigrp_asn | default(None) or omit }}'
       route_control: '{{ item.tenant_l3o_route_control }}'
       state: '{{ item.tenant_l3o_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","l3o") }}'
@@ -432,6 +425,36 @@
       state: '{{ item.tenant_app_epg_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("tenant","app","epg") }}'
 
+  - name: Attach Application EPGs to AAEP
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/mo/uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default.json
+        method: post
+        content:
+            {
+                "infraGeneric": {
+                    "attributes": {
+                        "dn": "uni/infra/attentp-{{ item.access_policy_aci_aep_name }}/gen-default",
+                        "name": "default",
+                        "status": "{{ item.access_policy_aci_aep_epg_status | default() }}"
+                    },
+                    "children": [
+                        {
+                            "infraRsFuncToEpg": {
+                                "attributes": {
+                                    "tDn": "uni/tn-{{ item.access_policy_aci_aep_epg_tenant }}/ap-{{ item.access_policy_aci_aep_epg_ap }}/epg-{{ item.access_policy_aci_aep_epg_name }}",
+                                    "status": "created,modified",
+                                    "encap": "vlan-{{ item.access_policy_aci_aep_epg_vlan }}",
+                                    "mode": "{{ item.access_policy_aci_aep_epg_mode }}"
+                                },
+                                "children": []
+                            }
+                        }
+                    ]
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","epg") }}'
+
   - name: Create Filters
     cisco.aci.aci_filter:
       <<: *aci_login
@@ -528,7 +551,7 @@
                     "children": []
                 }
             }
-    with_items: '{{ aci_model_data|aci_listify("tenant","vrf","epg_collection_consumed_contracts") }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","vrf","epg_collection_consumed_contracts","contract") }}'
 
   - name: Associate BDs to L3Outs
     cisco.aci.aci_bd_to_l3out:
@@ -557,7 +580,7 @@
       tenant: '{{ item.tenant_name }}'
       ap: '{{ item.tenant_app_name }}'
       epg: '{{ item.tenant_app_epg_name }}'
-      deploy_immediacy: immediate
+      deploy_immediacy: '{{ item.tenant_app_epg_static_paths_immediacy }}'
       encap_id: '{{ item.tenant_app_epg_static_paths_encap_id }}'
       interface: '{{ item.tenant_app_epg_static_paths_interface }}'
       interface_mode: '{{ item.tenant_app_epg_static_paths_interface_mode }}'

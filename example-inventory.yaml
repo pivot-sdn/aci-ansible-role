@@ -13,6 +13,12 @@ fabric01:
             policy: default
             switch1: 201
             switch2: 202
+        - interface_policy_linklevel:
+          - name: SPEED-100G
+            speed: 100G
+            autonegotiate: 'off'
+            link_debounce: 100
+            fec_mode: inherit
         - interface_policy_lldp:
           - name: LLDP-ON
             receive: yes
@@ -325,6 +331,17 @@ fabric01:
                     type: phys
                 name: Web-EPG
                 pref_grp: no
+                contract:
+                  - name: Web-Con
+                    type: provider
+                static_paths:
+                  - interface: 1/1
+                    interface_mode: trunk
+                    interface_type: switch_port
+                    leafs: 101
+                    pod_id: 1
+                    encap_id: 2
+                    immediacy: immediate
           bd:
             - name: Web-BD
               arp_flood: yes
