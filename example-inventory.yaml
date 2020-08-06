@@ -6,6 +6,32 @@ fabric01:
       apic_username: admin
   vars:
     aci_topology:
+      fabric_policy:
+        - pod_policy:
+          - datetime:
+            - name: default
+              servers:
+                - ipaddress: 1.2.3.4
+                  mgmt_epg: default
+                  preferred: "true"
+                - ipaddress: 5.6.7.8
+                  mgmt_epg: default
+                  preferred: "false"
+        - pod_polgrp:
+          - name: CompanyXYZ-Pod-PolGrp
+            description:
+            datetime_pol: default
+            isis_pol: default
+            coop_grp_pol: default
+            bgp_rr_pol: default
+            mgmt_access_pol: default
+            snmp_pol: default
+            macsec_pol: default
+        - pod_profile:
+          - name: default
+            pod_selector:
+              - name: default
+                pod_pol_grp: CompanyXYZ-Pod-PolGrp
       access_policy:
         - switch_policy_virtual_port_channel:
           - grp_id: 201

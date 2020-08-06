@@ -18,6 +18,7 @@
   delegate_to: localhost
 
   block:
+  # ***********TIER1 CONFIGURATIONS**************
   - name: Configure BGP ASN
     cisco.aci.aci_rest:
       <<: *aci_login
@@ -54,6 +55,136 @@
             }
         }
     with_items: '{{ aci_model_data|aci_listify("system_settings","bgprr","nodes") }}'
+
+  - name: Add NTP Servers to Date and Time Pod Policy
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/time-{{ item.fabric_policy_pod_policy_datetime_name }}/ntpprov-{{ item.fabric_policy_pod_policy_datetime_servers_ipaddress }}.json
+      method: post
+      content:
+        {
+            "datetimeNtpProv": {
+                "attributes": {
+                    "dn": "uni/fabric/time-default/ntpprov-{{ item.fabric_policy_pod_policy_datetime_servers_ipaddress }}",
+                    "name": "{{ item.fabric_policy_pod_policy_datetime_servers_ipaddress }}",
+                    "preferred": "{{ item.fabric_policy_pod_policy_datetime_servers_preferred }}",
+                    "rn": "ntpprov-{{ item.fabric_policy_pod_policy_datetime_servers_ipaddress }}",
+                    "status": "{{ item.fabric_policy_pod_policy_datetime_status | default() }}"
+                },
+                "children": [
+                    {
+                        "datetimeRsNtpProvToEpg": {
+                            "attributes": {
+                                "tDn": "uni/tn-mgmt/mgmtp-{{ item.fabric_policy_pod_policy_datetime_servers_mgmt_epg }}/oob-{{ item.fabric_policy_pod_policy_datetime_servers_mgmt_epg }}",
+                                "status": "{{ item.fabric_policy_pod_policy_datetime_servers_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","datetime","servers") }}'
+
+  - name: Create Pod Policy Group
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_polgrp_name }}.json
+      method: post
+      content:
+        {
+            "fabricPodPGrp": {
+                "attributes": {
+                    "dn": "uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_polgrp_name }}",
+                    "name": "{{ item.fabric_policy_pod_polgrp_name }}",
+                    "rn": "podpgrp-{{ item.fabric_policy_pod_polgrp_name }}",
+                    "status": "{{ item.fabric_policy_pod_polgrp_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricRsTimePol": {
+                            "attributes": {
+                                "tnDatetimePolName": "{{ item.fabric_policy_pod_polgrp_datetime_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsPodPGrpIsisDomP": {
+                            "attributes": {
+                                "tnIsisDomPolName": "{{ item.fabric_policy_pod_polgrp_isis_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsPodPGrpCoopP": {
+                            "attributes": {
+                                "tnCoopPolName": "{{ item.fabric_policy_pod_polgrp_coop_grp_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsPodPGrpBGPRRP": {
+                            "attributes": {
+                                "tnBgpInstPolName": "{{ item.fabric_policy_pod_polgrp_bgp_rr_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsCommPol": {
+                            "attributes": {
+                                "tnCommPolName": "{{ item.fabric_policy_pod_polgrp_mgmt_access_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsSnmpPol": {
+                            "attributes": {
+                                "tnSnmpPolName": "{{ item.fabric_policy_pod_polgrp_snmp_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsMacsecPol": {
+                            "attributes": {
+                                "tnMacsecFabIfPolName": "{{ item.fabric_policy_pod_polgrp_macsec_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_polgrp") }}'
+
+  - name: Add Pod Policy Group to default pod selector of default Pod Profile
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}/pods-{{ item.fabric_policy_pod_profile_pod_selector_name }}-typ-ALL.json
+      method: post
+      content:
+        {
+            "fabricRsPodPGrp": {
+                "attributes": {
+                    "tDn": "uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_profile_pod_selector_pod_pol_grp }}",
+                    "status": "{{ item.fabric_policy_pod_profile_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_profile","pod_selector") }}'
 
   - name: Create Virtual Port Channel protection groups
     cisco.aci.aci_switch_policy_vpc_protection_group:
@@ -155,13 +286,55 @@
     with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
 
   - name: Add AAEPs
-    cisco.aci.aci_aep:
+    cisco.aci.aci_rest:
       <<: *aci_login
-      aep: '{{ item.access_policy_aci_aep_name }}'
-      description: '{{ item.access_policy_aci_aep_description }}'
-      infra_vlan: '{{ item.access_policy_aci_aep_enable_infra_vlan }}'
-      state: '{{ item.access_policy_aci_aep_state | default("present") }}'
+      path: /api/node/mo/uni/infra.json
+      method: post
+      output_level: debug
+      content:
+        {
+            "infraInfra": {
+                "attributes": {
+                    "dn": "uni/infra",
+                    "status": "modified"
+                },
+                "children": [
+                    {
+                        "infraAttEntityP": {
+                            "attributes": {
+                                "dn": "uni/infra/attentp-{{ item.access_policy_aci_aep_name }}",
+                                "name": "{{ item.access_policy_aci_aep_name }}",
+                                "descr": "{{ item.access_policy_aci_aep_description }}",
+                                "rn": "attentp-{{ item.access_policy_aci_aep_name }}",
+                                "status": "{{ item.system_settings_bgprr_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "infraFuncP": {
+                            "attributes": {
+                                "dn": "uni/infra/funcprof",
+                                "status": "modified"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
     with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep") }}'
+   
+  # THE BUILT-IN AAEP MODULE HAS AN IDEMPOTENCY BUG WHERE IT WANTS TO DESTROY AND RE-CREATE AAEPS EVERY RUN SO USING RAW REST (ABOVE)
+  # - name: Add AAEPs
+  #   cisco.aci.aci_aep:
+  #     <<: *aci_login
+  #     aep: '{{ item.access_policy_aci_aep_name }}'
+  #     description: '{{ item.access_policy_aci_aep_description }}'
+  #     infra_vlan: '{{ item.access_policy_aci_aep_enable_infra_vlan }}'
+  #     state: '{{ item.access_policy_aci_aep_state | default("present") }}'
+  #     output_level: debug
+  #   with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep") }}'
 
   - name: Bind AAEPs to Domains
     aci_aep_to_domain:
@@ -256,6 +429,23 @@
       tenant: '{{ item.tenant_name }}'
       vrf_name: '{{ item.tenant_vrf_name }}'
       state: '{{ item.tenant_vrf_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("tenant","vrf") }}'
+
+  - name: Set VRF Preferred Group Status
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/tn-Nordam-Prod/ctx-{{ item.tenant_vrf_name }}/any.json
+      method: post
+      content:
+        {
+            "vzAny": {
+                "attributes": {
+                    "dn": "uni/tn-Nordam-Prod/ctx-{{ item.tenant_vrf_name }}/any",
+                    "prefGrMemb": "{{ item.tenant_vrf_pref_grp }}"
+                },
+                "children": []
+            }
+        }
     with_items: '{{ aci_model_data|aci_listify("tenant","vrf") }}'
 
   - name: Add a new L3Out
