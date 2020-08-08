@@ -353,13 +353,13 @@
       policy_group: '{{ item.access_policy_interface_policy_group_name }}'
       description: '{{ item.access_policy_interface_policy_group_description | default(None) }}'
       lag_type: '{{ item.access_policy_interface_policy_group_type | default(None) or omit }}'
-      port_channel_policy: '{{ item.access_policy_interface_policy_group_port_channel_policy | default(None) or omit }}'
+      port_channel_policy: '{{ item.access_policy_interface_policy_group_lacp_pol | default(None) or omit }}'
       aep: '{{ item.access_policy_interface_policy_group_aaep | default(None) or omit }}'
       port_security_policy:  '{{ item.access_policy_interface_policy_group_port_security_policy | default(None) or omit }}'
       stp_interface_policy: '{{ item.access_policy_interface_policy_group_stp_interface_policy | default(None) or omit }}'
       cdp_policy: '{{ item.access_policy_interface_policy_group_cdp_pol | default(None) or omit }}'
       lldp_policy: '{{ item.access_policy_interface_policy_group_lldp_pol | default(None) or omit }}'
-      link_level_policy: '{{ item.access_policy_interface_policy_group_lacp_pol | default(None) or omit }}'
+      link_level_policy: '{{ item.access_policy_interface_policy_group_link_pol | default(None) or omit }}'
       mcp_policy: '{{ item.access_policy_interface_policy_group_mcp_policy | default(None) or omit }}'
       monitoring_policy: '{{ item.access_policy_interface_policy_group_monitoring_policy | default(None) or omit }}'
       l2_interface_policy: '{{ item.access_policy_interface_policy_group_l2_interface_policy | default(None) or omit }}'
@@ -434,13 +434,13 @@
   - name: Set VRF Preferred Group Status
     cisco.aci.aci_rest:
       <<: *aci_login
-      path: /api/node/mo/uni/tn-Nordam-Prod/ctx-{{ item.tenant_vrf_name }}/any.json
+      path: /api/node/mo/uni/tn-{{ item.tenant_name }}/ctx-{{ item.tenant_vrf_name }}/any.json
       method: post
       content:
         {
             "vzAny": {
                 "attributes": {
-                    "dn": "uni/tn-Nordam-Prod/ctx-{{ item.tenant_vrf_name }}/any",
+                    "dn": "uni/tn-{{ item.tenant_name }}/ctx-{{ item.tenant_vrf_name }}/any",
                     "prefGrMemb": "{{ item.tenant_vrf_pref_grp }}"
                 },
                 "children": []
