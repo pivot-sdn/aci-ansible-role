@@ -826,16 +826,15 @@
   - name: Create EPG static paths
     cisco.aci.aci_static_binding_to_epg:
       <<: *aci_login
-      tenant: '{{ item.tenant_name }}'
-      ap: '{{ item.tenant_app_name }}'
-      epg: '{{ item.tenant_app_epg_name }}'
-      deploy_immediacy: '{{ item.tenant_app_epg_static_paths_immediacy }}'
-      encap_id: '{{ item.tenant_app_epg_static_paths_encap_id }}'
-      interface: '{{ item.tenant_app_epg_static_paths_interface }}'
-      interface_mode: '{{ item.tenant_app_epg_static_paths_interface_mode }}'
-      interface_type: '{{ item.tenant_app_epg_static_paths_interface_type }}'
-      leafs: '{{ item.tenant_app_epg_static_paths_leafs }}'
-      pod_id: '{{ item.tenant_app_epg_static_paths_pod_id }}'
-      state: '{{ item.tenant_app_epg_static_paths_state | default("present") }}'
-    with_items: '{{ aci_model_data|aci_listify("tenant","app","epg","static_paths") }}'
-    when: item.tenant_app_epg_static_paths_interface is defined
+      tenant: '{{ item.static_paths_tenant }}'
+      ap: '{{ item.static_paths_application_profile }}'
+      epg: '{{ item.static_paths_epg }}'
+      deploy_immediacy: '{{ item.static_paths_immediacy }}'
+      encap_id: '{{ item.static_paths_encap_id }}'
+      interface: '{{ item.static_paths_interface }}'
+      interface_mode: '{{ item.static_paths_interface_mode }}'
+      interface_type: '{{ item.static_paths_interface_type }}'
+      leafs: '{{ item.static_paths_leafs }}'
+      pod_id: '{{ item.static_paths_pod_id }}'
+      state: '{{ item.static_paths_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("static_paths") }}'
