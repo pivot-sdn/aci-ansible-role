@@ -245,6 +245,34 @@
         }
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_linklevel") }}'
 
+  - name: Create MCP interface policies
+    cisco.aci.aci_interface_policy_mcp:
+      <<: *aci_login
+      mcp: '{{ item.access_policy_interface_policy_mcp_name }}'
+      admin_state: '{{ item.access_policy_interface_policy_mcp_admin_state }}'
+      state: '{{ item.access_policy_interface_policy_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_mcp") }}'
+
+  - name: Configure Spanning Tree Policies
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/infra/ifPol-{{ item.access_policy_interface_policy_stp_name }}.json
+      method: post
+      content:
+        {
+            "stpIfPol": {
+                "attributes": {
+                    "dn": "uni/infra/ifPol-{{ item.access_policy_interface_policy_stp_name }}",
+                    "name": "{{ item.access_policy_interface_policy_stp_name }}",
+                    "ctrl": "{{ item.access_policy_interface_policy_stp_ctrl }}",
+                    "rn": "ifPol-{{ item.access_policy_interface_policy_stp_name }}",
+                    "status": "{{ item.access_policy_interface_policy_linklevel_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_stp") }}'
+
   - name: Add VLAN pools
     cisco.aci.aci_vlan_pool:
       <<: *aci_login
@@ -356,11 +384,11 @@
       port_channel_policy: '{{ item.access_policy_interface_policy_group_lacp_pol | default(None) or omit }}'
       aep: '{{ item.access_policy_interface_policy_group_aaep | default(None) or omit }}'
       port_security_policy:  '{{ item.access_policy_interface_policy_group_port_security_policy | default(None) or omit }}'
-      stp_interface_policy: '{{ item.access_policy_interface_policy_group_stp_interface_policy | default(None) or omit }}'
+      stp_interface_policy: '{{ item.access_policy_interface_policy_group_stp_pol | default(None) or omit }}'
       cdp_policy: '{{ item.access_policy_interface_policy_group_cdp_pol | default(None) or omit }}'
       lldp_policy: '{{ item.access_policy_interface_policy_group_lldp_pol | default(None) or omit }}'
       link_level_policy: '{{ item.access_policy_interface_policy_group_link_pol | default(None) or omit }}'
-      mcp_policy: '{{ item.access_policy_interface_policy_group_mcp_policy | default(None) or omit }}'
+      mcp_policy: '{{ item.access_policy_interface_policy_group_mcp_pol | default(None) or omit }}'
       monitoring_policy: '{{ item.access_policy_interface_policy_group_monitoring_policy | default(None) or omit }}'
       l2_interface_policy: '{{ item.access_policy_interface_policy_group_l2_interface_policy | default(None) or omit }}'
       state: '{{ item.access_policy_interface_policy_group_state | default("present") }}'
