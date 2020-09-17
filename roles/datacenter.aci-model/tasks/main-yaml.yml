@@ -480,7 +480,7 @@
       state: '{{ item.access_policy_switch_policy_profile_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile") }}'
 
-  - name: Bind leaf selectors to switch profiles
+  - name: Bind leaf selectors to leaf switch profiles
     cisco.aci.aci_switch_leaf_selector:
       <<: *aci_login
       leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
@@ -491,8 +491,8 @@
       leaf_node_blk: none
       state: '{{ item.access_policy_switch_policy_profile_leaf_selector_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile","leaf_selector") }}'
-
-  - name: Bind interface selector profiles to switch profiles
+  
+  - name: Bind leaf interface selector profiles to leaf switch profiles
     cisco.aci.aci_interface_selector_to_switch_policy_leaf_profile:
       <<: *aci_login
       interface_selector: '{{ item.access_policy_switch_policy_profile_interface_selector_profile_name }}'
@@ -500,6 +500,175 @@
       state: '{{ item.access_policy_switch_policy_profile_interface_selector_profile_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_profile","interface_selector_profile") }}'
 
+  - name: Create spine interface policy groups
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/infra/funcprof/spaccportgrp-{{ item.access_policy_spine_interface_policy_group_name }}.json
+      method: post
+      content:
+        {
+            "infraSpAccPortGrp": {
+                "attributes": {
+                    "dn": "uni/infra/funcprof/spaccportgrp-{{ item.access_policy_spine_interface_policy_group_name }}",
+                    "name": "{{ item.access_policy_spine_interface_policy_group_name }}",
+                    "rn": "spaccportgrp-{{ item.access_policy_spine_interface_policy_group_name }}",
+                    "status": "{{ item.access_policy_spine_interface_policy_group_status | default() }}"
+                },
+                "children": [
+                    {
+                        "infraRsHIfPol": {
+                            "attributes": {
+                                "tnFabricHIfPolName": "{{ item.access_policy_spine_interface_policy_group_link_pol }}",
+                                "status": "{{ item.access_policy_spine_interface_policy_group_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "infraRsCdpIfPol": {
+                            "attributes": {
+                                "tnCdpIfPolName": "{{ item.access_policy_spine_interface_policy_group_cdp_pol }}",
+                                "status": "{{ item.access_policy_spine_interface_policy_group_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "infraRsMacsecIfPol": {
+                            "attributes": {
+                                "tnMacsecIfPolName": "{{ item.access_policy_spine_interface_policy_group_macsec_pol }}",
+                                "status": "{{ item.access_policy_spine_interface_policy_group_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "infraRsAttEntP": {
+                            "attributes": {
+                                "tDn": "uni/infra/attentp-{{ item.access_policy_spine_interface_policy_group_aaep }}",
+                                "status": "{{ item.access_policy_spine_interface_policy_group_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","spine_interface_policy_group") }}'
+
+  - name: Add spine switch profiles and bind spine switch selectors
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/infra/spprof-{{ item.access_policy_switch_policy_spine_profile_name }}.json
+      method: post
+      content:
+        {
+            "infraSpineP": {
+                "attributes": {
+                    "dn": "uni/infra/spprof-{{ item.access_policy_switch_policy_spine_profile_name }}",
+                    "name": "{{ item.access_policy_switch_policy_spine_profile_name }}",
+                    "rn": "spprof-{{ item.access_policy_switch_policy_spine_profile_name }}",
+                    "status": "{{ item.access_policy_switch_policy_spine_profile_status | default() }}"
+                },
+                "children": [
+                    {
+                        "infraSpineS": {
+                            "attributes": {
+                                "dn": "uni/infra/spprof-{{ item.access_policy_switch_policy_spine_profile_name }}/spines-{{ item.access_policy_switch_policy_spine_profile_spine_selector_name }}-typ-range",
+                                "type": "range",
+                                "name": "{{ item.access_policy_switch_policy_spine_profile_spine_selector_name }}",
+                                "rn": "spines-{{ item.access_policy_switch_policy_spine_profile_spine_selector_name }}-typ-range",
+                                "status": "{{ item.access_policy_switch_policy_spine_profile_spine_selector_status | default() }}"
+                            },
+                            "children": [
+                                {
+                                    "infraNodeBlk": {
+                                        "attributes": {
+                                            "dn": "uni/infra/spprof-{{ item.access_policy_switch_policy_spine_profile_name }}/spines-{{ item.access_policy_switch_policy_spine_profile_spine_selector_name }}-typ-range/nodeblk-3b8905f8d61fe7b2",
+                                            "from_": "{{ item.access_policy_switch_policy_spine_profile_spine_selector_from }}",
+                                            "to_": "{{ item.access_policy_switch_policy_spine_profile_spine_selector_to }}",
+                                            "name": "3b8905f8d61fe7b2",
+                                            "rn": "nodeblk-3b8905f8d61fe7b2",
+                                            "status": "{{ item.access_policy_switch_policy_spine_profile_spine_selector_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_spine_profile","spine_selector") }}'  
+
+  - name: Log in to APIC and Generate token (For using URI module)
+    uri:
+        url: https://{{apic_host}}/api/aaaLogin.json
+        method: POST
+        body_format: json
+        body: '{ "aaaUser" : { "attributes": {"name":"{{apic_username}}","pwd":"{{apic_password}}" } } }'
+        status_code: 200
+        validate_certs: no
+    register: login
+
+  - name: Create Spine Interface Profiles and bind spine port selectors
+    uri:
+        url: https://{{apic_host}}/api/node/mo/uni/infra/spaccportprof-{{ item.access_policy_spine_interface_policy_profile_name }}.json
+        method: POST
+        return_content: yes
+        body_format: json
+        body:
+            {
+                "infraSpAccPortP": {
+                    "attributes": {
+                        "dn": "uni/infra/spaccportprof-{{ item.access_policy_spine_interface_policy_profile_name }}",
+                        "name": "{{ item.access_policy_spine_interface_policy_profile_name }}",
+                        "rn": "spaccportprof-{{ item.access_policy_spine_interface_policy_profile_name }}",
+                        "status": "{{ item.access_policy_spine_interface_poilcy_profile_status | default() }}"
+                    },
+                    "children": [
+                        {
+                            "infraSHPortS": {
+                                "attributes": {
+                                    "dn": "uni/infra/spaccportprof-{{ item.access_policy_spine_interface_policy_profile_name }}/shports-{{ item.access_policy_spine_interface_policy_profile_port_selector_name }}-typ-range",
+                                    "name": "{{ item.access_policy_spine_interface_policy_profile_port_selector_name }}",
+                                    "rn": "shports-{{ item.access_policy_spine_interface_policy_profile_port_selector_name }}-typ-range",
+                                    "status": "{{ item.access_policy_spine_interface_poilcy_profile_port_selector_status | default() }}"
+                                },
+                                "children": [
+                                    {
+                                        "infraPortBlk": {
+                                            "attributes": {
+                                                "dn": "uni/infra/spaccportprof-{{ item.access_policy_spine_interface_policy_profile_name }}/shports-{{ item.access_policy_spine_interface_policy_profile_port_selector_name }}-typ-range/portblk-block2",
+                                                "fromPort": "{{ item.access_policy_spine_interface_policy_profile_port_selector_from }}",
+                                                "toPort": "{{ item.access_policy_spine_interface_policy_profile_port_selector_to }}",
+                                                "name": "block2",
+                                                "rn": "portblk-block2",
+                                                "status": "{{ item.access_policy_spine_interface_poilcy_profile_port_selector_status | default() }}"
+                                            },
+                                            "children": []
+                                        }
+                                    },
+                                    {
+                                        "infraRsSpAccGrp": {
+                                            "attributes": {
+                                                "tDn": "uni/infra/funcprof/spaccportgrp-{{ item.access_policy_spine_interface_policy_profile_port_selector_policy_grp }}",
+                                                "status": "{{ item.access_policy_spine_interface_poilcy_profile_port_selector_status | default() }}"
+                                            },
+                                            "children": []
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        headers:
+            Cookie: "{{ login.set_cookie }}"
+        validate_certs: no
+    with_items: '{{ aci_model_data|aci_listify("access_policy","spine_interface_policy_profile","port_selector") }}'
   
   # ***********TIER3 CONFIGURATIONS**************
   - name: Create tenants
