@@ -1,0 +1,861 @@
+- name: Push aci_model
+
+  # We prepare an aci_login anchor for convenience
+  vars:
+    aci_login: &aci_login
+      hostname: '{{ apic_host }}'
+      username: '{{ apic_username }}'
+      password: '{{ apic_password }}'
+      use_proxy: '{{ apic_use_proxy }}'
+      validate_certs: '{{ apic_validate_certs }}'
+
+  # We define the delegate_to at the block-level
+  delegate_to: localhost
+
+  block:
+  - name: Create Date and Time Pod Policy (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/time-{{ item.fabric_policy_pod_policy_datetime_name }}.json
+      method: post
+      content:
+        {
+            "datetimePol": {
+                "attributes": {
+                    "dn": "uni/fabric/time-{{ item.fabric_policy_pod_policy_datetime_name }}",
+                    "name": "{{ item.fabric_policy_pod_policy_datetime_name }}",
+                    "adminSt": "{{ item.fabric_policy_pod_policy_datetime_admin_state }}",
+                    "serverState": "{{ item.fabric_policy_pod_policy_datetime_svr_state }}",
+                    "masterMode": "{{ item.fabric_policy_pod_policy_datetime_master_mode }}",
+                    "StratumValue": "{{ item.fabric_policy_pod_policy_datetime_stratum }}",
+                    "authSt": "{{ item.fabric_policy_pod_policy_datetime_auth_state }}",
+                    "rn": "time-{{ item.fabric_policy_pod_policy_datetime_name }}",
+                    "status": "{{ item.fabric_policy_pod_policy_datetime_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","datetime") }}'
+
+  - name: Add NTP Servers to Date and Time Pod Policy (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/time-{{ item.fabric_policy_pod_policy_datetime_name }}/ntpprov-{{ item.fabric_policy_pod_policy_datetime_providers_ntp_source }}.json
+      method: post
+      content:
+        {
+            "datetimeNtpProv": {
+                "attributes": {
+                    "dn": "uni/fabric/time-{{ item.fabric_policy_pod_policy_datetime_name }}/ntpprov-{{ item.fabric_policy_pod_policy_datetime_providers_ntp_source }}",
+                    "name": "{{ item.fabric_policy_pod_policy_datetime_providers_ntp_source }}",
+                    "preferred": "{{ item.fabric_policy_pod_policy_datetime_providers_preferred }}",
+                    "minPoll": "{{ item.fabric_policy_pod_policy_datetime_providers_min_polling_int }}",
+                    "maxPoll": "{{ item.fabric_policy_pod_policy_datetime_providers_max_polling_int }}",
+                    "rn": "ntpprov-{{ item.fabric_policy_pod_policy_datetime_providers_ntp_source }}",
+                    "status": "{{ item.fabric_policy_pod_policy_datetime_providers_status | default() }}"
+                },
+                "children": [
+                    {
+                        "datetimeRsNtpProvToNtpAuthKey": {
+                            "attributes": {
+                                "tnDatetimeNtpAuthKeyId": "{{ item.fabric_policy_pod_policy_datetime_providers_key_id }}",
+                                "status": "{{ item.fabric_policy_pod_policy_datetime_providers_key_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "datetimeRsNtpProvToEpg": {
+                            "attributes": {
+                                "tDn": "uni/tn-mgmt/mgmtp-{{ item.fabric_policy_pod_policy_datetime_providers_mgmt_epg }}/oob-{{ item.fabric_policy_pod_policy_datetime_providers_mgmt_epg }}",
+                                "status": "{{ item.fabric_policy_pod_policy_datetime_providers_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","datetime","providers","key") }}'
+
+  - name: Configure ISIS Default Policy (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/isisDomP-{{ item.fabric_policy_pod_policy_isis_policy_default_name }}.json
+      method: post
+      content:
+        {
+            "isisDomPol": {
+                "attributes": {
+                    "dn": "uni/fabric/isisDomP-{{ item.fabric_policy_pod_policy_isis_policy_default_name }}",
+                    "mtu": "{{ item.fabric_policy_pod_policy_isis_policy_default_mtu }}",
+                    "redistribMetric": "{{ item.fabric_policy_pod_policy_isis_policy_default_redistribMetric }}"
+                },
+                "children": [
+                    {
+                        "isisLvlComp": {
+                            "attributes": {
+                                "dn": "uni/fabric/isisDomP-{{ item.fabric_policy_pod_policy_isis_policy_default_name }}/lvl-l1",
+                                "lspFastFlood": "{{ item.fabric_policy_pod_policy_isis_policy_default_lspFastFlood }}",
+                                "lspGenInitIntvl": "{{ item.fabric_policy_pod_policy_isis_policy_default_lspGenInitIntvl }}",
+                                "lspGenMaxIntvl": "{{ item.fabric_policy_pod_policy_isis_policy_default_lspGenMaxIntvl }}",
+                                "lspGenSecIntvl": "{{ item.fabric_policy_pod_policy_isis_policy_default_lspGenSecIntvl }}",
+                                "spfCompInitIntvl": "{{ item.fabric_policy_pod_policy_isis_policy_default_spfCompInitIntvl }}",
+                                "spfCompMaxIntvl": "{{ item.fabric_policy_pod_policy_isis_policy_default_spfCompMaxIntvl }}",
+                                "spfCompSecIntvl": "{{ item.fabric_policy_pod_policy_isis_policy_default_spfCompSecIntvl }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","isis_policy_default") }}'
+
+  - name: Configure Fabric L2 MTU Policy (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/l2pol-default.json
+      method: post
+      content:
+        {
+            "l2InstPol": {
+                "attributes": {
+                    "dn": "uni/fabric/l2pol-default",
+                    "fabricMtu": "{{ item.fabric_policy_global_policy_fabL2mtu }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","global_policy") }}'
+
+  - name: Configure Macsec Parameters Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/macsecpcontfab/fabparamp-{{ item.fabric_policy_macsec_policy_parameters_name }}.json
+      method: post
+      content:
+        {
+            "macsecFabParamPol": {
+                "attributes": {
+                    "dn": "uni/fabric/macsecpcontfab/fabparamp-{{ item.fabric_policy_macsec_policy_parameters_name }}",
+                    "name": "{{ item.fabric_policy_macsec_policy_parameters_name }}",
+                    "cipherSuite": "{{ item.fabric_policy_macsec_policy_parameters_cipher }}",
+                    "replayWindow": "{{ item.fabric_policy_macsec_policy_parameters_window_size }}",
+                    "secPolicy": "{{ item.fabric_policy_macsec_policy_parameters_securityPol }}",
+                    "rn": "fabparamp-{{ item.fabric_policy_macsec_policy_parameters_name }}",
+                    "status": "{{ item.fabric_policy_macsec_policy_parameters_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","macsec_policy","parameters") }}'
+
+  - name: Configure Macsec Keychain Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/macsecpcontfab/keychainp-{{ item.fabric_policy_macsec_policy_keychains_name }}.json
+      method: post
+      content:
+        {
+            "macsecKeyChainPol": {
+                "attributes": {
+                    "dn": "uni/fabric/macsecpcontfab/keychainp-{{ item.fabric_policy_macsec_policy_keychains_name }}",
+                    "name": "{{ item.fabric_policy_macsec_policy_keychains_name }}",
+                    "rn": "keychainp-{{ item.fabric_policy_macsec_policy_keychains_name }}",
+                    "status": "{{ item.fabric_policy_macsec_policy_keychains_status | default() }}"
+                },
+                "children": [
+                    {
+                        "macsecKeyPol": {
+                            "attributes": {
+                                "dn": "uni/fabric/macsecpcontfab/keychainp-{{ item.fabric_policy_macsec_policy_keychains_name }}/keyp-{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_name }}",
+                                "name": "{{ item.fabric_policy_macsec_policy_keychains_key_policy_name }}",
+                                "keyName": "{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_name }}",
+                                "preSharedKey": "{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_presharedKey }}",
+                                "startTime": "{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_startTime }}",
+                                "endTime": "{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_endTime }}",
+                                "rn": "keyp-{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_name }}",
+                                "status": "{{ item.fabric_policy_macsec_policy_keychains_key_policy_keys_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","macsec_policy","keychains","key_policy","keys") }}'
+
+  - name: Configure Macsec Fabric Interface Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/macsecfabifp-{{ item.fabric_policy_macsec_policy_interface_policy_name }}.json
+      method: post
+      content:
+        {
+            "macsecFabIfPol": {
+                "attributes": {
+                    "dn": "uni/fabric/macsecfabifp-{{ item.fabric_policy_macsec_policy_interface_policy_name }}",
+                    "name": "{{ item.fabric_policy_macsec_policy_interface_policy_name }}",
+                    "useAutoKeys": "{{ item.fabric_policy_macsec_policy_interface_policy_genKeys | default(None) or omit }}",
+                    "rn": "macsecfabifp-{{ item.fabric_policy_macsec_policy_interface_policy_name }}",
+                    "status": "{{ item.fabric_policy_macsec_policy_interface_policy_status | default() }}"
+                },
+                "children": [
+                    {
+                        "macsecRsToParamPol": {
+                            "attributes": {
+                                "tDn": "uni/fabric/macsecpcontfab/fabparamp-{{ item.fabric_policy_macsec_policy_interface_policy_paramPol }}",
+                                "status": "{{ item.fabric_policy_macsec_policy_interface_policy_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","macsec_policy","interface_policy") }}'
+
+  - name: Configure SNMP Pod Policies & Add Client Group Profils (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}.json
+      method: post
+      content:
+        {
+            "snmpPol": {
+                "attributes": {
+                    "dn": "uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}",
+                    "name": "{{ item.fabric_policy_pod_policy_snmp_name }}",
+                    "adminSt": "{{ item.fabric_policy_pod_policy_snmp_admin_state }}",
+                    "contact": "{{ item.fabric_policy_pod_policy_snmp_contact }}",
+                    "loc": "{{ item.fabric_policy_pod_policy_snmp_location }}",
+                    "rn": "snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}",
+                    "status": "{{ item.fabric_policy_pod_policy_snmp_status | default() }}"
+                },
+                "children": [
+                    {
+                        "snmpClientGrpP": {
+                            "attributes": {
+                                "dn": "uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name}}/clgrp-{{ item.fabric_policy_pod_policy_snmp_clientProfiles_name }}",
+                                "name": "{{ item.fabric_policy_pod_policy_snmp_clientProfiles_name }}",
+                                "rn": "clgrp-{{ item.fabric_policy_pod_policy_snmp_clientProfiles_name }}",
+                                "status": "{{ item.fabric_policy_pod_policy_snmp_clientProfiles_status | default() }}"
+                            },
+                            "children": [
+                                {
+                                    "snmpClientP": {
+                                        "attributes": {
+                                            "dn": "uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name}}/clgrp-{{ item.fabric_policy_pod_policy_snmp_clientProfiles_name }}/client-[{{ item.fabric_policy_pod_policy_snmp_clientProfiles_clients_ip }}]",
+                                            "name": "{{ item.fabric_policy_pod_policy_snmp_clientProfiles_clients_ip }}",
+                                            "addr": "{{ item.fabric_policy_pod_policy_snmp_clientProfiles_clients_ip }}",
+                                            "rn": "client-[{{ item.fabric_policy_pod_policy_snmp_clientProfiles_clients_ip }}]",
+                                            "status": "{{ item.fabric_policy_pod_policy_snmp_clientProfiles_client_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                },
+                                {
+                                    "snmpRsEpg": {
+                                        "attributes": {
+                                            "tDn": "uni/tn-mgmt/mgmtp-default/oob-{{ item.fabric_policy_pod_policy_snmp_clientProfiles_clients_mgmt_epg}}",
+                                            "status": "{{ item.fabric_policy_pod_policy_snmp_clientProfiles_client_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","snmp","clientProfiles","clients") }}'
+
+  - name: Add SNMP v3 Users to SNMP Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}/user-{{ item.fabric_policy_pod_policy_snmp_v3Users_userName }}.json
+      method: post
+      content:
+        {
+            "snmpUserP": {
+                "attributes": {
+                    "dn": "uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}/user-{{ item.fabric_policy_pod_policy_snmp_v3Users_userName }}",
+                    "name": "{{ item.fabric_policy_pod_policy_snmp_v3Users_userName }}",
+                    "privType": "{{ item.fabric_policy_pod_policy_snmp_v3Users_privacyType }}",
+                    "authType": "{{ item.fabric_policy_pod_policy_snmp_v3Users_authType }}",
+                    "privKey": "{{ item.fabric_policy_pod_policy_snmp_v3Users_privacyKey }}",
+                    "authKey": "{{ item.fabric_policy_pod_policy_snmp_v3Users_authKey }}",
+                    "rn": "user-{{ item.fabric_policy_pod_policy_snmp_v3Users_userName }}",
+                    "status": "{{ item.fabric_policy_pod_policy_snmp_v3Users_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","snmp","v3Users") }}'
+
+  - name: Add Community Strings to SNMP Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}/community-{{ item.fabric_policy_pod_policy_snmp_community_string }}.json
+      method: post
+      content:
+        {
+            "snmpCommunityP": {
+                "attributes": {
+                    "dn": "uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}/community-{{ item.fabric_policy_pod_policy_snmp_community_string }}",
+                    "name": "{{ item.fabric_policy_pod_policy_snmp_community_string }}",
+                    "descr": "{{ item.fabric_policy_pod_policy_snmp_community_description }}",
+                    "rn": "community-{{ item.fabric_policy_pod_policy_snmp_community_string }}",
+                    "status": "{{ item.fabric_policy_pod_policy_snmp_community_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","snmp","community") }}'
+
+  - name: Add Trap Forward Servers to SNMP Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}/trapfwdserver-[{{ item.fabric_policy_pod_policy_snmp_trap_svrs_ip }}].json
+      method: post
+      content:
+        {
+            "snmpTrapFwdServerP": {
+                "attributes": {
+                    "dn": "uni/fabric/snmppol-{{ item.fabric_policy_pod_policy_snmp_name }}/trapfwdserver-[{{ item.fabric_policy_pod_policy_snmp_trap_svrs_ip }}]",
+                    "addr": "{{ item.fabric_policy_pod_policy_snmp_trap_svrs_ip }}",
+                    "port": "{{ item.fabric_policy_pod_policy_snmp_trap_svrs_port }}",
+                    "rn": "trapfwdserver-[{{ item.fabric_policy_pod_policy_snmp_trap_svrs_ip }}]",
+                    "status": "{{ item.fabric_policy_pod_policy_snmp_trap_svrs_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_policy","snmp","trap_svrs") }}'
+    
+  - name: Create Pod Policy Groups (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_polgrp_name }}.json
+      method: post
+      content:
+        {
+            "fabricPodPGrp": {
+                "attributes": {
+                    "dn": "uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_polgrp_name }}",
+                    "name": "{{ item.fabric_policy_pod_polgrp_name }}",
+                    "rn": "podpgrp-{{ item.fabric_policy_pod_polgrp_name }}",
+                    "status": "{{ item.fabric_policy_pod_polgrp_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricRsTimePol": {
+                            "attributes": {
+                                "tnDatetimePolName": "{{ item.fabric_policy_pod_polgrp_datetime_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsPodPGrpIsisDomP": {
+                            "attributes": {
+                                "tnIsisDomPolName": "{{ item.fabric_policy_pod_polgrp_isis_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsPodPGrpCoopP": {
+                            "attributes": {
+                                "tnCoopPolName": "{{ item.fabric_policy_pod_polgrp_coop_grp_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsPodPGrpBGPRRP": {
+                            "attributes": {
+                                "tnBgpInstPolName": "{{ item.fabric_policy_pod_polgrp_bgp_rr_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsCommPol": {
+                            "attributes": {
+                                "tnCommPolName": "{{ item.fabric_policy_pod_polgrp_mgmt_access_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsSnmpPol": {
+                            "attributes": {
+                                "tnSnmpPolName": "{{ item.fabric_policy_pod_polgrp_snmp_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsMacsecPol": {
+                            "attributes": {
+                                "tnMacsecFabIfPolName": "{{ item.fabric_policy_pod_polgrp_macsec_pol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_polgrp") }}'
+
+  - name: Create Pod Profiles (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}.json
+      method: post
+      content:
+        {
+            "fabricPodP": {
+                "attributes": {
+                    "dn": "uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}",
+                    "name": "{{ item.fabric_policy_pod_profile_name }}",
+                    "rn": "podprof-{{ item.fabric_policy_pod_profile_name }}",
+                    "status": "{{ item.fabric_policy_pod_profile_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_profile") }}'
+
+  - name: Add Pod Selectors of type "ALL" to Pod Profiles and associate Pod Policy Groups (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}/pods-{{ item.fabric_policy_pod_profile_pod_selector_name }}-typ-ALL.json
+      method: post
+      content:
+        {
+            "fabricPodS": {
+                "attributes": {
+                    "dn": "uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}/pods-{{ item.fabric_policy_pod_profile_pod_selector_name }}-typ-ALL",
+                    "name": "{{ item.fabric_policy_pod_profile_pod_selector_name }}",
+                    "type": "ALL",
+                    "rn": "pods-{{ item.fabric_policy_pod_profile_name }}-typ-ALL",
+                    "status": "{{ item.fabric_policy_pod_profile_pod_selector_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricRsPodPGrp": {
+                            "attributes": {
+                                "tDn": "uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_profile_pod_selector_pod_policy_grp }}",
+                                "status": "{{ item.fabric_policy_pod_profile_pod_selector_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_profile","pod_selector") }}'
+    when: item.fabric_policy_pod_profile_pod_selector_type == 'ALL'
+
+  - name: Add Pod Selectors of type "range" to Pod Profiles and associate Pod Policy Groups (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}/pods-{{ item.fabric_policy_pod_profile_pod_selector_name }}-typ-range.json
+      method: post
+      content:
+        {
+            "fabricPodS": {
+                "attributes": {
+                    "dn": "uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}/pods-{{ item.fabric_policy_pod_profile_pod_selector_name }}-typ-range",
+                    "name": "{{ item.fabric_policy_pod_profile_pod_selector_name }}",
+                    "type": "range",
+                    "rn": "pods-{{ item.fabric_policy_pod_profile_name }}-typ-range",
+                    "status": "{{ item.fabric_policy_pod_profile_pod_selector_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricRsPodPGrp": {
+                            "attributes": {
+                                "tDn": "uni/fabric/funcprof/podpgrp-{{ item.fabric_policy_pod_profile_pod_selector_pod_policy_grp }}",
+                                "status": "{{ item.fabric_policy_pod_profile_pod_selector_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricPodBlk": {
+                            "attributes": {
+                                "dn": "uni/fabric/podprof-{{ item.fabric_policy_pod_profile_name }}/pods-{{ item.fabric_policy_pod_profile_pod_selector_name }}-typ-range/podblk-3f9ec32e7c25597a",
+                                "from_": "{{ item.fabric_policy_pod_profile_pod_selector_blocks }}",
+                                "to_": "{{ item.fabric_policy_pod_profile_pod_selector_blocks }}",
+                                "name": "3f9ec32e7c25597a",
+                                "rn": "podblk-3f9ec32e7c25597a",
+                                "status": "{{ item.fabric_policy_pod_profile_pod_selector_status | default() }}"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","pod_profile","pod_selector") }}'
+    when: item.fabric_policy_pod_profile_pod_selector_type == 'range'
+
+  - name: Create Fabric Leaf Interface Policy Groups (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/funcprof/leportgrp-{{ item.fabric_policy_leaf_int_pol_grp_name }}.json
+      method: post
+      content:
+        {
+            "fabricLePortPGrp": {
+                "attributes": {
+                    "dn": "uni/fabric/funcprof/leportgrp-{{ item.fabric_policy_leaf_int_pol_grp_name }}",
+                    "name": "{{ item.fabric_policy_leaf_int_pol_grp_name }}",
+                    "rn": "leportgrp-{{ item.fabric_policy_leaf_int_pol_grp_name }}",
+                    "status": "{{ item.fabric_policy_leaf_int_pol_grp_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricRsMonIfFabricPol": {
+                            "attributes": {
+                                "tnMonFabricPolName": "{{ item.fabric_policy_leaf_int_pol_grp_monPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsMacsecFabIfPol": {
+                            "attributes": {
+                                "tnMacsecFabIfPolName": "{{ item.fabric_policy_leaf_int_pol_grp_macsecPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsL3IfPol": {
+                            "attributes": {
+                                "tnL3IfPolName": "{{ item.fabric_policy_leaf_int_pol_grp_l3intPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsDwdmFabIfPol": {
+                            "attributes": {
+                                "tnDwdmFabIfPolName": "{{ item.fabric_policy_leaf_int_pol_grp_dwdmPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","leaf_int_pol_grp") }}'
+
+  - name: Create Fabric Spine Interface Policy Groups (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/funcprof/spportgrp-{{ item.fabric_policy_spine_int_pol_grp_name }}.json
+      method: post
+      content:
+        {
+            "fabricSpPortPGrp": {
+                "attributes": {
+                    "dn": "uni/fabric/funcprof/spportgrp-{{ item.fabric_policy_spine_int_pol_grp_name }}",
+                    "name": "{{ item.fabric_policy_spine_int_pol_grp_name }}",
+                    "rn": "leportgrp-{{ item.fabric_policy_spine_int_pol_grp_name }}",
+                    "status": "{{ item.fabric_policy_spine_int_pol_grp_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricRsMonIfFabricPol": {
+                            "attributes": {
+                                "tnMonFabricPolName": "{{ item.fabric_policy_spine_int_pol_grp_monPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsMacsecFabIfPol": {
+                            "attributes": {
+                                "tnMacsecFabIfPolName": "{{ item.fabric_policy_spine_int_pol_grp_macsecPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsL3IfPol": {
+                            "attributes": {
+                                "tnL3IfPolName": "{{ item.fabric_policy_spine_int_pol_grp_l3intPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    },
+                    {
+                        "fabricRsDwdmFabIfPol": {
+                            "attributes": {
+                                "tnDwdmFabIfPolName": "{{ item.fabric_policy_spine_int_pol_grp_dwdmPol }}",
+                                "status": "created,modified"
+                            },
+                            "children": []
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","spine_int_pol_grp") }}'
+
+  - name: Create Fabric Leaf Switch Profiles (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/leprof-{{ item.fabric_policy_leaf_sw_profile_name }}.json
+      method: post
+      content:
+        {
+            "fabricLeafP": {
+                "attributes": {
+                    "dn": "uni/fabric/leprof-{{ item.fabric_policy_leaf_sw_profile_name }}",
+                    "name": "{{ item.fabric_policy_leaf_sw_profile_name }}",
+                    "rn": "leprof-{{ item.fabric_policy_leaf_sw_profile_name }}",
+                    "status": "{{ item.fabric_policy_leaf_sw_profile_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricLeafS": {
+                            "attributes": {
+                                "dn": "uni/fabric/leprof-{{ item.fabric_policy_leaf_sw_profile_name }}/leaves-{{ item.fabric_policy_leaf_sw_profile_swName }}-typ-range",
+                                "type": "range",
+                                "name": "{{ item.fabric_policy_leaf_sw_profile_swName }}",
+                                "rn": "leaves-{{ item.fabric_policy_leaf_sw_profile_swName }}-typ-range",
+                                "status": "created,modified"
+                            },
+                            "children": [
+                                {
+                                    "fabricNodeBlk": {
+                                        "attributes": {
+                                            "dn": "uni/fabric/leprof-{{ item.fabric_policy_leaf_sw_profile_name }}/leaves-{{ item.fabric_policy_leaf_sw_profile_swName }}-typ-range/nodeblk-6a1c69db0180abc8",
+                                            "from_": "{{ item.fabric_policy_leaf_sw_profile_id }}",
+                                            "to_": "{{ item.fabric_policy_leaf_sw_profile_id }}",
+                                            "name": "6a1c69db0180abc8",
+                                            "rn": "nodeblk-6a1c69db0180abc8",
+                                            "status": "created,modified"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","leaf_sw_profile") }}'
+
+  - name: Create Fabric Spine Switch Profiles (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/spprof-{{ item.fabric_policy_spine_sw_profile_name }}.json
+      method: post
+      content:
+        {
+            "fabricSpineP": {
+                "attributes": {
+                    "dn": "uni/fabric/spprof-{{ item.fabric_policy_spine_sw_profile_name }}",
+                    "name": "{{ item.fabric_policy_spine_sw_profile_name }}",
+                    "rn": "spprof-{{ item.fabric_policy_spine_sw_profile_name }}",
+                    "status": "{{ item.fabric_policy_spine_sw_profile_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricSpineS": {
+                            "attributes": {
+                                "dn": "uni/fabric/spprof-{{ item.fabric_policy_spine_sw_profile_name }}/spines-{{ item.fabric_policy_spine_sw_profile_swName }}-typ-range",
+                                "type": "range",
+                                "name": "{{ item.fabric_policy_spine_sw_profile_swName }}",
+                                "rn": "spines-{{ item.fabric_policy_spine_sw_profile_swName }}-typ-range",
+                                "status": "created,modified"
+                            },
+                            "children": [
+                                {
+                                    "fabricNodeBlk": {
+                                        "attributes": {
+                                            "dn": "uni/fabric/spprof-{{ item.fabric_policy_spine_sw_profile_name }}/spines-{{ item.fabric_policy_spine_sw_profile_swName }}-typ-range/nodeblk-6a1c69db0180bbc8",
+                                            "from_": "{{ item.fabric_policy_spine_sw_profile_id }}",
+                                            "to_": "{{ item.fabric_policy_spine_sw_profile_id }}",
+                                            "name": "6a1c69db0180bbc8",
+                                            "rn": "nodeblk-6a1c69db0180bbc8",
+                                            "status": "created,modified"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","spine_sw_profile") }}'
+
+  - name: Create Fabric Leaf Interface Profiles and Associate Port Selectors (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/leportp-{{ item.fabric_policy_leaf_int_profiles_name }}.json
+      method: post
+      content:
+        {
+            "fabricLePortP": {
+                "attributes": {
+                    "dn": "uni/fabric/leportp-{{ item.fabric_policy_leaf_int_profiles_name }}",
+                    "name": "{{ item.fabric_policy_leaf_int_profiles_name }}",
+                    "rn": "leportp-{{ item.fabric_policy_leaf_int_profiles_name }}",
+                    "status": "{{ item.fabric_policy_leaf_int_profiles_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricLFPortS": {
+                            "attributes": {
+                                "dn": "uni/fabric/leportp-{{ item.fabric_policy_leaf_int_profiles_name }}/lefabports-{{ item.fabric_policy_leaf_int_profiles_port_selectors_name }}-typ-range",
+                                "type": "range",
+                                "name": "{{ item.fabric_policy_leaf_int_profiles_port_selectors_name }}",
+                                "rn": "lefabports-{{ item.fabric_policy_leaf_int_profiles_port_selectors_name }}-typ-range",
+                                "status": "{{ item.fabric_policy_leaf_int_profiles_port_selectors_status | default() }}"
+                            },
+                            "children": [
+                                {
+                                    "fabricPortBlk": {
+                                        "attributes": {
+                                            "dn": "uni/fabric/leportp-{{ item.fabric_policy_leaf_int_profiles_name }}/lefabports-{{ item.fabric_policy_leaf_int_profiles_port_selectors_name }}-typ-range/portblk-b2dbf1fbf39aa5f1",
+                                            "fromPort": "{{ item.fabric_policy_leaf_int_profiles_port_selectors_from }}",
+                                            "toPort": "{{ item.fabric_policy_leaf_int_profiles_port_selectors_to }}",
+                                            "name": "b2dbf1fbf39aa5f1",
+                                            "rn": "portblk-b2dbf1fbf39aa5f1",
+                                            "status": "{{ item.fabric_policy_leaf_int_profiles_port_selectors_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                },
+                                {
+                                    "fabricRsLePortPGrp": {
+                                        "attributes": {
+                                            "tDn": "uni/fabric/funcprof/leportgrp-{{ item.fabric_policy_leaf_int_profiles_port_selectors_policyGrp }}",
+                                            "status": "{{ item.fabric_policy_leaf_int_profiles_port_selectors_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","leaf_int_profiles","port_selectors") }}'
+
+  - name: Create Fabric Spine Interface Profiles and Associate Port Selectors (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/spportp-{{ item.fabric_policy_spine_int_profiles_name }}.json
+      method: post
+      content:
+        {
+            "fabricSpPortP": {
+                "attributes": {
+                    "dn": "uni/fabric/spportp-{{ item.fabric_policy_spine_int_profiles_name }}",
+                    "name": "{{ item.fabric_policy_spine_int_profiles_name }}",
+                    "rn": "spportp-{{ item.fabric_policy_spine_int_profiles_name }}",
+                    "status": "{{ item.fabric_policy_spine_int_profiles_status | default() }}"
+                },
+                "children": [
+                    {
+                        "fabricSFPortS": {
+                            "attributes": {
+                                "dn": "uni/fabric/spportp-{{ item.fabric_policy_spine_int_profiles_name }}/spfabports-{{ item.fabric_policy_spine_int_profiles_port_selectors_name }}-typ-range",
+                                "type": "range",
+                                "name": "{{ item.fabric_policy_spine_int_profiles_port_selectors_name }}",
+                                "rn": "spfabports-{{ item.fabric_policy_spine_int_profiles_port_selectors_name }}-typ-range",
+                                "status": "{{ item.fabric_policy_spine_int_profiles_port_selectors_status | default() }}"
+                            },
+                            "children": [
+                                {
+                                    "fabricPortBlk": {
+                                        "attributes": {
+                                            "dn": "uni/fabric/spportp-{{ item.fabric_policy_spine_int_profiles_name }}/spfabports-{{ item.fabric_policy_spine_int_profiles_port_selectors_name }}-typ-range/portblk-b2dbf1fbf39aa5f1",
+                                            "fromPort": "{{ item.fabric_policy_spine_int_profiles_port_selectors_from }}",
+                                            "toPort": "{{ item.fabric_policy_spine_int_profiles_port_selectors_to }}",
+                                            "name": "b2dbf1fbf39aa5f1",
+                                            "rn": "portblk-b2dbf1fbf39aa5f1",
+                                            "status": "{{ item.fabric_policy_spine_int_profiles_port_selectors_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                },
+                                {
+                                    "fabricRsSpPortPGrp": {
+                                        "attributes": {
+                                            "tDn": "uni/fabric/funcprof/spportgrp-{{ item.fabric_policy_spine_int_profiles_port_selectors_policyGrp }}",
+                                            "status": "{{ item.fabric_policy_spine_int_profiles_port_selectors_status | default() }}"
+                                        },
+                                        "children": []
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","spine_int_profiles","port_selectors") }}'
+
+  - name: Associate Leaf Interface Profiles to Leaf Switch Profiles (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/leprof-{{ item.fabric_policy_leaf_sw_profile_name }}.json
+      method: post
+      content:
+        {
+            "fabricRsLePortP": {
+                "attributes": {
+                    "tDn": "uni/fabric/leportp-{{ item.fabric_policy_leaf_sw_profile_intProfiles_name }}",
+                    "status": "{{ item.fabric_policy_leaf_sw_profile_intProfiles_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","leaf_sw_profile","intProfiles") }}'
+
+  - name: Associate Spine Interface Profiles to Leaf Switch Profiles (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/fabric/spprof-{{ item.fabric_policy_spine_sw_profile_name }}.json
+      method: post
+      content:
+        {
+            "fabricRsSpPortP": {
+                "attributes": {
+                    "tDn": "uni/fabric/spportp-{{ item.fabric_policy_spine_sw_profile_intProfiles_name }}",
+                    "status": "{{ item.fabric_policy_spine_sw_profile_intProfiles_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("fabric_policy","spine_sw_profile","intProfiles") }}'

@@ -15,7 +15,11 @@ def listify_worker(d, keys, depth, result, cache, prefix):
             cache_work = cache.copy()
             if isinstance(item, dict):
                 for k,v in item.items():
-                    allowed_list_values = ['leafs','bd_sub_scope']
+                    '''
+                    The aci_static_binding_to_epg module requires a list of node IDs when the leaf interface type
+                    is vpc. So the custom filter has been modified to allow a list in this case.
+                    '''
+                    allowed_list_values = ['leafs']
                     if k in allowed_list_values: # These are the only key who's value CAN be a list
                         cache_key = prefix + k
                         cache_value = v

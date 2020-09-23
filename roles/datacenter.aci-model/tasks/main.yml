@@ -1,3 +1,6 @@
 ---
-- include_tasks: main-yaml.yml
+  - include: system-settings.yml
+  - include: fabric-policies.yml
+  - include: access-policies.yml
+  - include: tenants.yml
 # - include_tasks: test.yml

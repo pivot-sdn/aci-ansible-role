@@ -1,0 +1,165 @@
+- name: Push aci_model
+
+  # We prepare an aci_login anchor for convenience
+  vars:
+    aci_login: &aci_login
+      hostname: '{{ apic_host }}'
+      username: '{{ apic_username }}'
+      password: '{{ apic_password }}'
+      use_proxy: '{{ apic_use_proxy }}'
+      validate_certs: '{{ apic_validate_certs }}'
+
+  # We define the delegate_to at the block-level
+  delegate_to: localhost
+
+  block:
+  - name: Configure BGP ASN (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/fabric/bgpInstP-default/as.json
+      method: post
+      content:
+        {
+            "bgpAsP": {
+                "attributes": {
+                    "dn": "uni/fabric/bgpInstP-default/as",
+                    "asn": "{{ item.system_settings_bgprr_asn }}",
+                    "status": "{{ item.system_settings_bgprr_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","bgprr") }}'
+
+  - name: Add BGP Route Reflector Nodes (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/mo/uni/fabric/bgpInstP-default/rr/node-{{ item.system_settings_bgprr_nodes_id }}.json
+      method: post
+      content:
+        {
+            "bgpRRNodePEp": {
+                "attributes": {
+                    "dn": "uni/fabric/bgpInstP-default/rr/node-{{ item.system_settings_bgprr_nodes_id }}",
+                    "id": "{{ item.system_settings_bgprr_nodes_id }}",
+                    "rn": "node-{{ item.system_settings_bgprr_nodes_id }}",
+                    "status": "{{ item.system_settings_bgprr_nodes_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","bgprr","nodes") }}'
+
+  - name: Configure Control Plane MTU (REST)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/node/mo/uni/infra/CPMtu.json
+        method: post
+        content:
+            {
+                "infraCPMtuPol": {
+                    "attributes": {
+                        "dn": "uni/infra/CPMtu",
+                        "CPMtu": "{{ item.system_settings_control_plane_mtu_policy_mtu }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","control_plane_mtu_policy") }}'
+
+  - name: Configure Endpoint Controls - EP Loop Protection (REST)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/node/mo/uni/infra/epLoopProtectP-default.json
+        method: post
+        content:
+            {
+                "epLoopProtectP": {
+                    "attributes": {
+                        "dn": "uni/infra/epLoopProtectP-default",
+                        "adminSt": "{{ item.system_settings_endpoint_controls_ep_loop_protection_admin_state }}",
+                        "loopDetectIntvl": "{{ item.system_settings_endpoint_controls_ep_loop_protection_loop_detect_interval }}",
+                        "loopDetectMult": "{{ item.system_settings_endpoint_controls_ep_loop_protection_loop_detect_mfactor }}",
+                        "action": "{{ item.system_settings_endpoint_controls_ep_loop_protection_action }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","endpoint_controls_ep_loop_protection") }}'
+  
+  - name: Configure Endpoint Controls - Rogue EP Control (REST)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/node/mo/uni/infra/epCtrlP-default.json
+        method: post
+        content:
+            {
+                "epControlP": {
+                    "attributes": {
+                        "dn": "uni/infra/epCtrlP-default",
+                        "adminSt": "{{ item.system_settings_endpoint_controls_rogue_ep_admin_state }}",
+                        "rogueEpDetectIntvl": "{{ item.system_settings_endpoint_controls_rogue_ep_detect_interval }}",
+                        "rogueEpDetectMult": "{{ item.system_settings_endpoint_controls_rogue_ep_detect_mfactor }}",
+                        "holdIntvl": "{{ item.system_settings_endpoint_controls_rogue_ep_hold_interval }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","endpoint_controls_rogue_ep") }}'
+  
+  - name: Configure Endpoint Controls - IP Aging (REST)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/node/mo/uni/infra/ipAgingP-default.json
+        method: post
+        content:
+            {
+                "epIpAgingP": {
+                    "attributes": {
+                        "dn": "uni/infra/ipAgingP-default",
+                        "adminSt": "{{ item.system_settings_endpoint_controls_ip_aging_admin_state }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","endpoint_controls_ip_aging") }}'
+  
+  - name: Configure Fabric-Wide Settings Policy (REST)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/node/mo/uni/infra/settings.json
+        method: post
+        content:
+            {
+                "infraSetPol": {
+                    "attributes": {
+                        "dn": "uni/infra/settings",
+                        "unicastXrEpLearnDisable": "{{ item.system_settings_fabricwide_settings_disable_remote_ep_learning }}",
+                        "enforceSubnetCheck": "{{ item.system_settings_fabricwide_settings_enforce_subnet_check }}",
+                        "validateOverlappingVlans": "{{ item.system_settings_fabricwide_settings_enforce_epg_vlan_validation }}",
+                        "domainValidation": "{{ item.system_settings_fabricwide_settings_enforce_domain_validation }}",
+                        "enableRemoteLeafDirect": "{{ item.system_settings_fabricwide_settings_enable_remote_leaf_direct_traffic_forwarding }}",
+                        "opflexpAuthenticateClients": "{{ item.system_settings_fabricwide_settings_opflex_auth }}",
+                        "reallocateGipo": "{{ item.system_settings_fabricwide_settings_reallocate_gipo }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","fabricwide_settings") }}'
+  
+  - name: Configure COOP Group Policy (REST)
+    cisco.aci.aci_rest:
+        <<: *aci_login
+        path: /api/node/mo/uni/fabric/pol-default.json
+        method: post
+        content:
+            {
+                "coopPol": {
+                    "attributes": {
+                        "dn": "uni/fabric/pol-default",
+                        "type": "{{ item.system_settings_coop_group_policy_type }}"
+                    },
+                    "children": []
+                }
+            }
+    with_items: '{{ aci_model_data|aci_listify("system_settings","coop_group_policy") }}'
