@@ -46,6 +46,59 @@
         }
     with_items: '{{ aci_model_data|aci_listify("tenant","vrf") }}'
 
+  - name: Create Tenant BFD Protocol Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/tn-{{ item.tenant_name }}/bfdIfPol-{{ item.tenant_protocol_policy_bfd_name }}.json
+      method: post
+      content:
+        {
+            "bfdIfPol": {
+                "attributes": {
+                    "dn": "uni/tn-{{ item.tenant_name }}/bfdIfPol-{{ item.tenant_protocol_policy_bfd_name }}",
+                    "name": "{{ item.tenant_protocol_policy_bfd_name }}",
+                    "ctrl": "{{ item.tenant_protocol_policy_bfd_ctrl }}",
+                    "detectMult": "{{ item.tenant_protocol_policy_bfd_detectMult }}",
+                    "minTxIntvl": "{{ item.tenant_protocol_policy_bfd_minTxInterval }}",
+                    "minRxIntvl": "{{ item.tenant_protocol_policy_bfd_minRxInterval }}",
+                    "echoRxIntvl": "{{ item.tenant_protocol_policy_bfd_echoRxInterval }}",
+                    "echoAdminSt": "{{ item.tenant_protocol_policy_bfd_echoAdminSt }}",
+                    "adminSt": "{{ item.tenant_protocol_policy_bfd_adminSt }}",
+                    "rn": "bfdIfPol-{{ item.tenant_protocol_policy_bfd_name }}",
+                    "status": '{{ item.tenant_protocol_policy_bfd_state | default() }}'
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("tenant", "protocol_policy", "bfd") }}'
+
+  - name: Create Tenant OSPF Interface Protocol Policies (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/tn-{{ item.tenant_name }}/ospfIfPol-{{ item.tenant_protocol_policy_ospf_interface_name }}.json
+      method: post
+      content:
+        {
+            "ospfIfPol": {
+                "attributes": {
+                    "dn": "uni/tn-{{ item.tenant_name }}/ospfIfPol-{{ item.tenant_protocol_policy_ospf_interface_name }}",
+                    "name": "{{ item.tenant_protocol_policy_ospf_interface_name }}",
+                    "nwT": "{{ item.tenant_protocol_policy_ospf_interface_netType }}",
+                    "prio": "{{ item.tenant_protocol_policy_ospf_interface_priority }}",
+                    "cost": "{{ item.tenant_protocol_policy_ospf_interface_intCost }}",
+                    "ctrl": "{{ item.tenant_protocol_policy_ospf_interface_ctrl }}",
+                    "helloIntvl": "{{ item.tenant_protocol_policy_ospf_interface_helloInt }}",
+                    "deadIntvl": "{{ item.tenant_protocol_policy_ospf_interface_deadInt }}",
+                    "rexmitIntvl": "{{ item.tenant_protocol_policy_ospf_interface_retransInt }}",
+                    "xmitDelay": "{{ item.tenant_protocol_policy_ospf_interface_transDelay }}",
+                    "rn": "ospfIfPol-{{ item.tenant_protocol_policy_ospf_interface_name }}",
+                    "status": '{{ item.tenant_protocol_policy_ospf_interface_state | default() }}'
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("tenant", "protocol_policy", "ospf_interface") }}'  
+
   - name: Add a new L3Out
     # L3 protocols = bgp, eigrp, ospf, pim, static
     cisco.aci.aci_l3out:

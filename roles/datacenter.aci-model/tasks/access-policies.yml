@@ -438,7 +438,7 @@
         validate_certs: no
     register: login
 
-  - name: Create Spine Interface Profiles and bind spine port selectors
+  - name: Create Spine Interface Profiles and bind spine port selectors (URI REST)
     uri:
         url: https://{{apic_host}}/api/node/mo/uni/infra/spaccportprof-{{ item.access_policy_spine_interface_policy_profile_name }}.json
         method: POST
@@ -495,3 +495,20 @@
             Cookie: "{{ login.set_cookie }}"
         validate_certs: no
     with_items: '{{ aci_model_data|aci_listify("access_policy","spine_interface_policy_profile","port_selector") }}'
+
+  - name: Bind Spine Interface Profiles to Spine Switch Profiles (REST)
+    cisco.aci.aci_rest:
+      <<: *aci_login
+      path: /api/node/mo/uni/infra/spprof-{{ item.access_policy_switch_policy_spine_profile_name }}.json
+      method: post
+      content:
+        {
+            "infraRsSpAccPortP": {
+                "attributes": {
+                    "tDn": "uni/infra/spaccportprof-{{ item.access_policy_switch_policy_spine_profile_interface_selector_profile_name }}",
+                    "status": "{{ item.access_policy_switch_policy_spine_profile_interface_selector_profile_status | default() }}"
+                },
+                "children": []
+            }
+        }
+    with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_spine_profile","interface_selector_profile") }}' 
