@@ -1,20 +1,16 @@
 name: Publish Docker image
 on:
-  release:
-    types: [published]
+  workflow_dispatch
 jobs:
-  push_to_registry:
-    name: Push Docker image to GitHub Packages
+  submit_repository_dispatch:
+    name: Send repository dispatch trigger to pivot-aci-ansible repo
     runs-on: ubuntu-latest
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v2
-      - name: Push to GitHub Packages
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
-          repository: pivot-sdn/aci-ansible-container/pivot-aci-ansible
-          dockerfile: ./Dockerfile 
-          tag_with_ref: true
+      - name: Send API call with Curl
+        run:
+          curl \
+            -X POST \
+            -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/pivot-sdn/aci-ansible-container/dispatches \
+            -d '{"event_type":"docker-build"}'
