@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send API call with Curl
-        run:
+        run: |
           curl \
             -X POST \
             -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
