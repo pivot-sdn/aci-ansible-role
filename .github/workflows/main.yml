@@ -1,0 +1,16 @@
+name: Publish Docker image
+on:
+  workflow_dispatch:
+jobs:
+  submit_repository_dispatch:
+    name: Send repository dispatch trigger to pivot-aci-ansible repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send API call with Curl
+        run:
+          curl \
+            -X POST \
+            -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/pivot-sdn/aci-ansible-container/dispatches \
+            -d '{"event_type":"docker-build"}'
