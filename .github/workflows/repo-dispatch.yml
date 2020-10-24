@@ -1,6 +1,7 @@
-name: Publish Docker image
+name: Send dispatch to pivot-aci-ansible repository
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
 jobs:
   submit_repository_dispatch:
     name: Send repository dispatch trigger to pivot-aci-ansible repo
