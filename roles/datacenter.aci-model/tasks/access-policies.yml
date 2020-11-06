@@ -13,7 +13,7 @@
   delegate_to: localhost
 
   block:
-  - name: Create Virtual Port Channel protection groups
+  - name: Create Virtual Port Channel Protection Groups
     cisco.aci.aci_switch_policy_vpc_protection_group:
       <<: *aci_login
       protection_group: '{{ item.access_policy_switch_policy_virtual_port_channel_name }}'
@@ -24,7 +24,7 @@
       state: '{{ item.access_policy_switch_policy_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","switch_policy_virtual_port_channel") }}'
 
-  - name: Create LLDP interface policies
+  - name: Create Interface Policies - LLDP
     cisco.aci.aci_interface_policy_lldp:
       <<: *aci_login
       lldp_policy: '{{ item.access_policy_interface_policy_lldp_name }}'
@@ -33,7 +33,7 @@
       state: '{{ item.access_policy_interface_policy_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_lldp") }}'
 
-  - name: Create CDP interface policies
+  - name: Create Interface Policies - CDP
     cisco.aci.aci_interface_policy_cdp:
       <<: *aci_login
       cdp_policy: '{{ item.access_policy_interface_policy_cdp_name }}'
@@ -41,7 +41,7 @@
       state: '{{ item.access_policy_interface_policy_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_cdp") }}'
 
-  - name: Create port channel policies
+  - name: Create Interface Policies - Port Channel
     cisco.aci.aci_interface_policy_port_channel:
       <<: *aci_login
       port_channel: '{{ item.access_policy_interface_policy_port_channel_name }}'
@@ -49,30 +49,18 @@
       state: '{{ item.access_policy_interface_policy_port_channel_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_port_channel") }}'
 
-  - name: Configure Link Level Policies
-    cisco.aci.aci_rest:
+  - name: Create Interface Policies - Link Level
+    cisco.aci.aci_interface_policy_link_level:
       <<: *aci_login
-      path: /api/node/mo/uni/infra/hintfpol-{{ item.access_policy_interface_policy_linklevel_name }}.json
-      method: post
-      content:
-        {
-            "fabricHIfPol": {
-                "attributes": {
-                    "dn": "uni/infra/hintfpol-{{ item.access_policy_interface_policy_linklevel_name }}",
-                    "name": "{{ item.access_policy_interface_policy_linklevel_name }}",
-                    "autoNeg": "{{ item.access_policy_interface_policy_linklevel_autonegotiate | default() }}",
-                    "speed": "{{ item.access_policy_interface_policy_linklevel_speed }}",
-                    "linkDebounce": "{{ item.access_policy_interface_policy_linklevel_link_debounce | default() }}",
-                    "fecMode": "{{ item.access_policy_interface_policy_linklevel_fec_mode | default(None) or omit }}",
-                    "rn": "hintfpol-{{ item.access_policy_interface_policy_linklevel_name }}",
-                    "status": "{{ item.access_policy_interface_policy_linklevel_status | default() }}"
-                },
-                "children": []
-            }
-        }
+      link_level_policy: '{{ item.access_policy_interface_policy_linklevel_name }}'
+      speed: '{{ item.access_policy_interface_policy_linklevel_speed }}'
+      link_debounce_interval: '{{ item.access_policy_interface_policy_linklevel_link_debounce | default() }}'
+      forwarding_error_correction: '{{ item.access_policy_interface_policy_linklevel_fec_mode | default(None) or omit }}'
+      auto_negotiation: '{{ item.access_policy_interface_policy_linklevel_autonegotiate | default() }}'
+      state: '{{ item.access_policy_interface_policy_linklevel_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_linklevel") }}'
 
-  - name: Create MCP interface policies
+  - name: Create Interface Policies - MCP
     cisco.aci.aci_interface_policy_mcp:
       <<: *aci_login
       mcp: '{{ item.access_policy_interface_policy_mcp_name }}'
@@ -80,7 +68,7 @@
       state: '{{ item.access_policy_interface_policy_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_mcp") }}'
 
-  - name: Configure Spanning Tree Policies
+  - name: Create Interface Policies - Spanning Tree
     cisco.aci.aci_rest:
       <<: *aci_login
       path: /api/node/mo/uni/infra/ifPol-{{ item.access_policy_interface_policy_stp_name }}.json
@@ -100,7 +88,7 @@
         }
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_stp") }}'
 
-  - name: Add VLAN pools
+  - name: Create VLAN Pools
     cisco.aci.aci_vlan_pool:
       <<: *aci_login
       pool: '{{ item.access_policy_vlan_pool_name }}'
@@ -108,7 +96,7 @@
       state: '{{ item.access_policy_vlan_pool_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","vlan_pool") }}'
 
-  - name: Add encapsulation blocks to VLAN pools
+  - name: Add Encapsulation Blocks to VLAN Pools
     cisco.aci.aci_vlan_pool_encap_block:
       <<: *aci_login
       pool: '{{ item.access_policy_vlan_pool_name }}'
@@ -119,7 +107,7 @@
       state: '{{ item.access_policy_vlan_pool_encap_block_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","vlan_pool","encap_block") }}'
 
-  - name: Add domains
+  - name: Create Domains
     cisco.aci.aci_domain:
       <<: *aci_login
       domain: '{{ item.access_policy_domain_name }}'
@@ -129,7 +117,7 @@
       state: '{{ item.access_policy_domain_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
 
-  - name: Bind domains to VLAN pools
+  - name: Bind Domains to VLAN Pools
     cisco.aci.aci_domain_to_vlan_pool:
       <<: *aci_login
       domain: '{{ item.access_policy_domain_name }}'
@@ -140,48 +128,7 @@
       state: '{{ item.access_policy_domain_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","domain") }}'
 
-  # - name: Add AAEPs
-  #   cisco.aci.aci_rest:
-  #     <<: *aci_login
-  #     path: /api/node/mo/uni/infra.json
-  #     method: post
-  #     output_level: debug
-  #     content:
-  #       {
-  #           "infraInfra": {
-  #               "attributes": {
-  #                   "dn": "uni/infra",
-  #                   "status": "modified"
-  #               },
-  #               "children": [
-  #                   {
-  #                       "infraAttEntityP": {
-  #                           "attributes": {
-  #                               "dn": "uni/infra/attentp-{{ item.access_policy_aci_aep_name }}",
-  #                               "name": "{{ item.access_policy_aci_aep_name }}",
-  #                               "descr": "{{ item.access_policy_aci_aep_description }}",
-  #                               "rn": "attentp-{{ item.access_policy_aci_aep_name }}",
-  #                               "status": "{{ item.system_settings_bgprr_status | default() }}"
-  #                           },
-  #                           "children": []
-  #                       }
-  #                   },
-  #                   {
-  #                       "infraFuncP": {
-  #                           "attributes": {
-  #                               "dn": "uni/infra/funcprof",
-  #                               "status": "modified"
-  #                           },
-  #                           "children": []
-  #                       }
-  #                   }
-  #               ]
-  #           }
-  #       }
-  #   with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep") }}'
-   
-  # THE NATIVE AAEP MODULE HAS AN IDEMPOTENCY BUG WHERE IT WANTS TO DESTROY AND RE-CREATE AAEPS EVERY RUN SO USING RAW REST (ABOVE)
-  - name: Add AAEPs
+  - name: Create AAEPs
     cisco.aci.aci_aep:
       <<: *aci_login
       aep: '{{ item.access_policy_aci_aep_name }}'
@@ -201,7 +148,7 @@
       state: '{{ item.access_policy_aci_aep_domains_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","aci_aep","domains") }}'
   
-  - name: Add leaf interface policy groups
+  - name: Create Leaf Interface Policy Groups
     cisco.aci.aci_interface_policy_leaf_policy_group:
       <<: *aci_login
       policy_group: '{{ item.access_policy_interface_policy_group_name }}'
@@ -220,85 +167,27 @@
       state: '{{ item.access_policy_interface_policy_group_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_group") }}'
 
-  - name: Create Access Port Selectors and associate to an Interface Policy Leaf Profile with a Policy Group
-    cisco.aci.aci_rest:
+  - name: Create Leaf Interface Profiles
+    cisco.aci.aci_interface_policy_leaf_profile:
       <<: *aci_login
-      path: /api/node/mo/uni/infra/accportprof-{{ item.access_policy_interface_policy_profile_name }}.json
-      method: post
-      content:
-        {
-            "infraAccPortP": {
-                "attributes": {
-                    "descr": "",
-                    "dn": "uni/infra/accportprof-{{ item.access_policy_interface_policy_profile_name }}",
-                    "name": "{{ item.access_policy_interface_policy_profile_name }}",
-                    "ownerKey": "",
-                    "ownerTag": "",
-                    "status": "{{ item.access_policy_interface_policy_profile_status | default() }}"
-                },
-                "children": [
-                    {
-                        "infraHPortS": {
-                            "attributes": {
-                                "descr": "",
-                                "name": "{{ item.access_policy_interface_policy_profile_port_selector_name }}",
-                                "ownerKey": "",
-                                "ownerTag": "",
-                                "type": "range",
-                                "status": "{{ item.access_policy_interface_policy_profile_port_selector_status | default() }}"
-                            },
-                            "children": [
-                                {
-                                    "infraRsAccBaseGrp": {
-                                        "attributes": {
-                                            "fexId": "101",
-                                            "tDn": "uni/infra/funcprof/{{ item.access_policy_interface_policy_profile_port_selector_policy_grp_type }}-{{ item.access_policy_interface_policy_profile_port_selector_policy_grp }}"
-                                        }
-                                    }
-                                },
-                                {
-                                    "infraPortBlk": {
-                                        "attributes": {
-                                            "descr": "",
-                                            "fromCard": "1",
-                                            "fromPort": "{{ item.access_policy_interface_policy_profile_port_selector_from }}",
-                                            "name": "block2",
-                                            "toCard": "1",
-                                            "toPort": "{{ item.access_policy_interface_policy_profile_port_selector_to }}"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
-        }
+      leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
+      state: '{{ item.access_policy_interface_policy_profile_state | default("present") }}'
+    with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile") }}'
+
+  - name: Create Leaf Interface Port Selectors & Associate to Policy Groups
+    cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
+      <<: *aci_login
+      interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
+      access_port_selector: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
+      interface_type: '{{ item.access_policy_interface_policy_profile_port_selector_policy_grp_type }}'
+      port_blk: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
+      from_port: '{{ item.access_policy_interface_policy_profile_port_selector_from | default(None) or omit }}'
+      to_port: '{{ item.access_policy_interface_policy_profile_port_selector_to | default(None) or omit }}'
+      policy_group: '{{ item.access_policy_interface_policy_profile_port_selector_policy_grp }}'
+      state: '{{ item.access_policy_interface_policy_profile_port_selector_state | default("present") }}'
     with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile","port_selector") }}'
 
-  # THIS IS INCLUDED IN THE ACI_REST CALL ABOVE UNTIL THE BUG IN THE MODULE BELOW IS FIXED
-  # - name: Add interface policy profiles
-  #   cisco.aci.aci_interface_policy_leaf_profile:
-  #     <<: *aci_login
-  #     leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
-  #     state: '{{ item.access_policy_interface_policy_profile_state | default("present") }}'
-  #   with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile") }}'
-    
-  # THE NATIVE PORT SELECTOR MODULE HAS A BUG WHERE IT WILL CREATE THE PORT SELECTOR AND EVERYTHING LOOKS FINE
-  # BUT WHEN YOU TRY TO SELECT THE INTERFACE (PC & VPC) IT DOES NOT SHOW UP IN THE LIST
-  # - name: Associate an Interface Access Port Selector to an Interface Policy Leaf Profile with a Policy Group
-  #   cisco.aci.aci_access_port_to_interface_policy_leaf_profile:
-  #     <<: *aci_login
-  #     leaf_interface_profile: '{{ item.access_policy_interface_policy_profile_name }}'
-  #     access_port_selector: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
-  #     leaf_port_blk: '{{ item.access_policy_interface_policy_profile_port_selector_name }}'
-  #     from_port: '{{ item.access_policy_interface_policy_profile_port_selector_from | default(None) or omit }}'
-  #     to_port: '{{ item.access_policy_interface_policy_profile_port_selector_to | default(None) or omit }}'
-  #     policy_group: '{{ item.access_policy_interface_policy_profile_port_selector_policy_grp | default(None) or omit }}'
-  #     state: '{{ item.access_policy_interface_policy_profile_port_selector_state | default("present") }}'
-  #   with_items: '{{ aci_model_data|aci_listify("access_policy","interface_policy_profile","port_selector") }}'
-
-  - name: Add leaf switch profiles
+  - name: Create leaf switch profiles
     cisco.aci.aci_switch_policy_leaf_profile:
       <<: *aci_login
       leaf_profile: '{{ item.access_policy_switch_policy_profile_name }}'
@@ -382,7 +271,7 @@
         }
     with_items: '{{ aci_model_data|aci_listify("access_policy","spine_interface_policy_group") }}'
 
-  - name: Add spine switch profiles and bind spine switch selectors
+  - name: Create spine switch profiles and bind spine switch selectors
     cisco.aci.aci_rest:
       <<: *aci_login
       path: /api/mo/uni/infra/spprof-{{ item.access_policy_switch_policy_spine_profile_name }}.json
